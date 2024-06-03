@@ -34,6 +34,7 @@ add_executable(genalgo
   src/GLFitnessEngine.cpp
   src/SFMLRenderer.cpp
   src/DrawableTexture.cpp
+  src/PoorProfiler.cpp
 )
 
 target_compile_features(genalgo PRIVATE cxx_std_20)

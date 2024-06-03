@@ -7,6 +7,7 @@
 #include "FitnessEngine.hpp"
 #include "GLFitnessEngine.hpp"
 #include "Individual.hpp"
+#include "PoorProfiler.hpp"
 #include "Population.hpp"
 #include "SFMLRenderer.hpp"
 #include "STFitnessEngine.hpp"
@@ -78,8 +79,14 @@ int main() {
 
     u32 renderPeriod = globalCfg.renderPeriod;
 
+
+    std::cout << std::fixed << std::setprecision(2);
     for (i64 nGen = 1; !shouldStop(); ++nGen) {
+        sLoop.restart();
+
+        sEvaluation.restart();
         pop.evaluate(engine);
+        sEvaluation.trigger();
         for (Individual const& i : pop.getIndividuals()) {
             if (i.getFitness() < bestIndividual.getFitness()) {
                 bestIndividual = i;
@@ -90,10 +97,17 @@ int main() {
             }
         }
 
+        sRender.restart();
         if (nGen % renderPeriod == 0) {
             renderer.requestRender(nGen, bestIndividual, pop);
         }
+        sRender.trigger();
 
+        sBreed.restart();
+        pop = pop.breed();
+        sBreed.trigger();
+
+        sLoop.trigger();
         if (nGen % 10 == 0) {
             std::cout << "Generation " << nGen << '\n';
             
@@ -115,9 +129,27 @@ int main() {
 
             std::cout << "Best fitness so far: " << bestIndividual.size() << " " <<
                 bestIndividual.getFitness() << ' ' << bornType << '\n';
-        }
 
-        pop = pop.breed();
+            auto printTime = [&](const char* name, double time, bool printPercent = true) {
+                std::cout << name << ": " << 1000 * time / nGen << "ms";
+                if (printPercent) {
+                    std::cout << " (" << 100 * time / sLoop.elapsed() << "%)";
+                }
+                std::cout << '\n';
+            };
+
+            printTime("Evaluation", sEvaluation.elapsed());
+            printTime(" - OpenGL", sOpenGL.elapsed());
+            printTime(" - CUDA", sCuda.elapsed());
+            printTime("   - Mapping", sCudaMapping.elapsed());
+            printTime("   - Textures", sCudaTextures.elapsed());
+            printTime("   - Copy", sCudaCopy.elapsed());
+            printTime("   - Kernel", sCudaKernel.elapsed());
+            printTime("   - Cleanup", sCudaCleanup.elapsed());
+            printTime("Render", sRender.elapsed());
+            printTime("Breed", sBreed.elapsed());
+            printTime("Total", sLoop.elapsed(), false);
+        }
     }
 
     return 0;

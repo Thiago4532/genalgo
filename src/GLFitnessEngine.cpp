@@ -6,6 +6,7 @@
 #include "CudaGLHelper.hpp"
 #include "DrawableTexture.hpp"
 #include "GLStateManager.hpp"
+#include "PoorProfiler.hpp"
 #include "Shader.hpp"
 #include "glad/glad.h"
 #include "globalConfig.hpp"
@@ -130,6 +131,8 @@ void GLFitnessEngine::EngineImpl::evaluate(std::vector<Individual>& individuals)
     if (individuals.size() != globalCfg.populationSize)
         throw std::runtime_error("Invalid population size");
 
+    sOpenGL.restart();
+
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     individualsBuffer.clear();
     for (i32 i = 0; i < individuals.size(); ++i) {
@@ -162,12 +165,18 @@ void GLFitnessEngine::EngineImpl::evaluate(std::vector<Individual>& individuals)
         glDrawArrays(GL_TRIANGLES, offset, 3 * individuals[i].size());
         offset += individuals[i].size() * 3;
     }
+    glFinish();
+
+    sOpenGL.trigger();
+    sCuda.restart();
 
     // Compute fitness now
     std::vector<f64> fitness(globalCfg.populationSize);
     cudaGLHelper.computeFitness(fitness);
     for (i32 i = 0; i < individuals.size(); ++i)
         individuals[i].setFitness(fitness[i]);
+
+    sCuda.trigger();
 }
 
 // Wrapper for the actual implementation of the engine
