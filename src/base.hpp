@@ -4,6 +4,11 @@
 #define GA_NAMESPACE_BEGIN namespace genalgo {
 #define GA_NAMESPACE_END }
 
+// A workaround to allow using C++17 in CUDA without having
+// much trouble. Although C++20 is supported, there is a bug in clang that
+// I don't wanna have the trouble to fix it.
+#define GA_TSL_SUPPORT (__cplusplus > 201703L)
+
 GA_NAMESPACE_BEGIN
 
 // FIXME: Use stdint.h instead

@@ -15,9 +15,7 @@ add_subdirectory(glad/)
 add_subdirectory(tsl/)
 
 add_library(CudaGLHelper OBJECT src/CudaGLHelper.cu)
-target_compile_features(CudaGLHelper PUBLIC cxx_std_23)
-target_compile_options(CudaGLHelper
-    PRIVATE "-arch=sm_75")
+target_compile_features(CudaGLHelper PUBLIC cxx_std_20)
 target_link_libraries(CudaGLHelper PRIVATE
   tsl
 )
@@ -38,7 +36,7 @@ add_executable(genalgo
   src/DrawableTexture.cpp
 )
 
-target_compile_features(genalgo PRIVATE cxx_std_23)
+target_compile_features(genalgo PRIVATE cxx_std_20)
 target_include_directories(genalgo PRIVATE src/)
 
 target_link_libraries(genalgo PRIVATE

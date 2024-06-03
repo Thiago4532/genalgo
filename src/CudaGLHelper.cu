@@ -1,5 +1,6 @@
-#include "Color.hpp"
 #include "CudaGLHelper.hpp"
+
+#include "Color.hpp"
 
 #include <cstdio>
 #include <cstdlib>

@@ -2,7 +2,10 @@
 #define GENALGO_IMAGE_HPP
 
 #include "base.hpp"
+
+#if GA_TSL_SUPPORT
 #include "tsl/cstring_ref.hpp"
+#endif
 
 GA_NAMESPACE_BEGIN
 
@@ -18,7 +21,9 @@ public:
     Image& operator=(Image&& other) = delete;
 
     Image(u32 width, u32 height);
+#if GA_TSL_SUPPORT
     bool load(tsl::cstring_ref filename);
+#endif
 
     i32 getWidth() const noexcept { return width; }
     i32 getHeight() const noexcept { return height; }
