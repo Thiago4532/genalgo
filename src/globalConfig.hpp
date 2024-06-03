@@ -15,26 +15,38 @@ struct GlobalConfig {
     i32 populationSize = 100;
 
     // Number of triangles in each individual
-    i32 numTriangles = 10;
-    i32 maxTriangles = 5000; 
+    i32 numTriangles = 100;
+    i32 maxTriangles = 2500; 
+
+    // Number of elite individuals
+    i32 eliteSize = 10;
+    i32 eliteExtraSize = 0; // Copy individual and remove 1 triangle
+    i32 eliteBreedPoolSize = eliteSize;
 
     // Mutation parameters
     //   * Probabilities are mutually exclusive, they must sum to <= 1
     f64 mutationChanceAdd = 0.05;
     f64 mutationChanceRemove = 0.05;
+    f64 mutationChanceReplace = 0.05;
     f64 mutationChanceSwap = 0.05;
-    f64 mutationChanceShape = 0.85;
+    f64 mutationChanceShape = 0.8;
 
     // Shape-specific mutation parameters 
     //   * Probabilities are mutually exclusive, they must sum to <= 1
-    f64 mutationShapeFineColorChance = 0.6;
-    f64 mutationShapeFineMoveXChance = 0.1;
-    f64 mutationShapeFineMoveYChance = 0.1;
-    f64 mutationShapeFineScaleChance = 0.1;
+    f64 mutationShapeFineColorChance = 0.55;
+    f64 mutationShapeFineMoveXChance = 0.15;
+    f64 mutationShapeFineMoveYChance = 0.15;
+    f64 mutationShapeFineScaleChance = 0.15;
+
+    // Penalty for each triangle in the individual (value is multiplied by image size)
+    f64 penalty = 0.001;
 
     // Renderer parameters
-    i32 renderScale = 6;
+    i32 renderScale = 2;
     u32 renderPeriod = 50; // Number of generations between renders
+    
+    // Number of generations between logging
+    u32 logPeriod = 50;
 
     // Seed for the random number generator
     u32 seed = 0x42424242;

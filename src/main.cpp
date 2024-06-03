@@ -29,12 +29,13 @@ static bool initializeGlobalConfig() {
     // These objects must be initialized before everything else
 
     if (!globalCfg.targetImage.load("image.png")) {
-    // if (!globalCfg.targetImage.load("maomao.jpeg")) {
         std::cerr << "Failed to load target image\n";
         return false;
     }
 
-    // globalRNG.seed(std::random_device{}());
+    // globalCfg.seed = 651999619; // gojo satoru: triangles 10 2500 penalty 0.01
+    // globalCfg.seed = 789671828; // monalisa: triangles 100 2500 penalty 0.001
+    globalCfg.seed = std::random_device{}();
     globalRNG.seed(globalCfg.seed);
 
     return true;
@@ -78,11 +79,37 @@ int main() {
     };
 
     u32 renderPeriod = globalCfg.renderPeriod;
+    u32 logPeriod = globalCfg.logPeriod;
 
+    bool geneticCrash = false;
+    i32 crashTimer = 100000;
+    const i32 ELITE = globalCfg.eliteSize;
+    const i32 ELITE_EXTRA = globalCfg.eliteExtraSize;
+    const i32 ELITE_BREED_POOL = globalCfg.eliteBreedPoolSize;
 
     std::cout << std::fixed << std::setprecision(2);
     for (i64 nGen = 1; !shouldStop(); ++nGen) {
         sLoop.restart();
+        crashTimer--;
+        if (crashTimer <= 0) {
+            geneticCrash ^= 1;
+            if (geneticCrash) {
+                crashTimer = 30000;
+                globalCfg.eliteSize = 2;
+                globalCfg.eliteExtraSize = 0;
+                globalCfg.eliteBreedPoolSize = 2;
+            } else {
+                crashTimer = 100000;
+                globalCfg.eliteSize = ELITE;
+                globalCfg.eliteExtraSize = ELITE_EXTRA;
+                globalCfg.eliteBreedPoolSize = ELITE_BREED_POOL;
+
+                // Erase everyone after the first 5
+                if (pop.getIndividuals().size() > 5)
+                    pop.getIndividuals().erase(pop.getIndividuals().begin() + 5, pop.getIndividuals().end());
+                pop.populate();
+            }
+        }
 
         sEvaluation.restart();
         pop.evaluate(engine);
@@ -108,8 +135,9 @@ int main() {
         sBreed.trigger();
 
         sLoop.trigger();
-        if (nGen % 10 == 0) {
-            std::cout << "Generation " << nGen << '\n';
+        if (nGen % logPeriod == 0) {
+            std::cout << "Generation " << nGen << ' ' << (geneticCrash ? "(ON)" : "(OFF)") << '\n';
+            std::cout << "Seed " << globalCfg.seed << '\n';
             
             const char* bornType;
             switch (bestIndividual.getBornType()) {

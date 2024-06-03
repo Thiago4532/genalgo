@@ -18,6 +18,7 @@ public:
     void evaluate(FitnessEngine& engine);
 
     std::vector<Individual> const& getIndividuals() const noexcept { return individuals; }
+    std::vector<Individual>& getIndividuals() noexcept { return individuals; }
 
     Population breed();
 private:

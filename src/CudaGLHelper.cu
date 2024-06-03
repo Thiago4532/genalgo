@@ -153,8 +153,8 @@ void CudaGLHelper::computeFitness(std::vector<f64>& fitness) {
 
     // Launch kernel
     i32 N = resources.size() * THREADS_PER_INDIVIDUAL;
-    const i32 THREADS = 128;
-    const i32 BLOCKS = (N + THREADS - 1) / THREADS;
+    i32 THREADS = 128;
+    i32 BLOCKS = (N + THREADS - 1) / THREADS;
 
     cudaMemset(fitnessInDevice, 0, fitness.size() * sizeof(f64));
     computeFitnessKernel<<<BLOCKS, THREADS>>>(

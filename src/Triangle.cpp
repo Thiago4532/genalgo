@@ -45,7 +45,7 @@ bool Triangle::mutateFineMoveY() {
 }
 
 bool Triangle::mutateFineScale() {
-    f64 scale = randomF64(0.95, 1.05);
+    f64 scale = randomF64(0.9, 1.1);
 
     // Scale the triangle around its center
     Point<f64> center = (a + b + c) / 3.0;
@@ -57,6 +57,7 @@ bool Triangle::mutateFineScale() {
 
 bool Triangle::mutate() {
     f64 prob = randomF64(0, 1);
+    bool mutated = false;
 
     if (prob < globalCfg.mutationShapeFineColorChance)
         return mutateFineColor();
@@ -74,7 +75,7 @@ bool Triangle::mutate() {
         return mutateFineScale();
     prob -= globalCfg.mutationShapeFineScaleChance;
 
-    return false;
+    return mutated;
 }
 
 GA_NAMESPACE_END

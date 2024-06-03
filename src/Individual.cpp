@@ -7,9 +7,7 @@
 
 GA_NAMESPACE_BEGIN
 
-bool Individual::mutateAdd() {
-    if (size() >= globalCfg.maxTriangles)
-        return false;
+static Triangle randomTriangle() {
     i32 width = globalCfg.targetImage.getWidth();
     i32 height = globalCfg.targetImage.getHeight();
 
@@ -29,17 +27,37 @@ bool Individual::mutateAdd() {
     t.color.b = colorDist(globalRNG);
     t.color.a = colorDist(globalRNG);
 
+    return t;
+}
+
+bool Individual::mutateAdd() {
+    if (size() >= globalCfg.maxTriangles)
+        return mutateReplace();
+    i32 width = globalCfg.targetImage.getWidth();
+    i32 height = globalCfg.targetImage.getHeight();
+
     i32 id = randomI32(0, size());
-    triangles.insert(begin() + id, t);
+    triangles.insert(begin() + id, randomTriangle());
     return true;
 }
 
 bool Individual::mutateRemove() {
     if (triangles.size() <= 1)
-        return false;
+        return mutateReplace();
 
     i32 id = randomI32(0, size() - 1);
     triangles.erase(begin() + id);
+    return true;
+}
+
+bool Individual::mutateReplace() {
+    if (triangles.empty())
+        return false;
+
+    i32 i = randomI32(0, size() - 1);
+    i32 j = randomI32(0, size() - 1);
+    triangles.erase(begin() + i);
+    triangles.insert(begin() + j, randomTriangle());
     return true;
 }
 
@@ -47,8 +65,11 @@ bool Individual::mutateSwap() {
     if (triangles.size() <= 1)
         return false;
 
-    i32 i = randomI32(1, size() - 1);
-    std::swap(triangles[i - 1], triangles[i]);
+    i32 i = randomI32(0, size() - 1);
+    i32 j = randomI32(0, size() - 2);
+    if (j >= i)
+        j++;
+    std::swap(triangles[i], triangles[j]);
     return true;
 }
 
@@ -70,6 +91,10 @@ bool Individual::mutate() {
     if (prob < globalCfg.mutationChanceRemove)
         return mutateRemove();
     prob -= globalCfg.mutationChanceRemove;
+
+    if (prob < globalCfg.mutationChanceReplace)
+        return mutateReplace();
+    prob -= globalCfg.mutationChanceReplace;
     
     if (prob < globalCfg.mutationChanceSwap)
         return mutateSwap();
@@ -96,7 +121,8 @@ Individual Individual::crossover(Individual const& other) const {
             std::swap(szMin, szMax);
 
         i32 sz = randomI32(szMin - 1, szMax + 1);
-        sz = std::clamp(sz, 1, globalCfg.maxTriangles); 
+        sz = std::clamp(sz, 1, szMin + szMax);
+        sz = std::min(sz, globalCfg.maxTriangles);
         child.reserve(sz);
 
         i32 sz_l = std::min(size(), (sz + 1) / 2);

@@ -165,6 +165,8 @@ void GLFitnessEngine::EngineImpl::evaluate(std::vector<Individual>& individuals)
         glDrawArrays(GL_TRIANGLES, offset, 3 * individuals[i].size());
         offset += individuals[i].size() * 3;
     }
+
+    // Performance penalty, but helps profiling.
     glFinish();
 
     sOpenGL.trigger();
