@@ -78,4 +78,12 @@ bool Triangle::mutate() {
     return mutated;
 }
 
+void Triangle::serialize(JSONSerializerState& state) const {
+    state.return_object()
+        .add("a", a)
+        .add("b", b)
+        .add("c", c)
+        .add("color", color);
+}
+
 GA_NAMESPACE_END

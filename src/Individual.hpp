@@ -61,6 +61,8 @@ public:
         swap(lhs.bornType, rhs.bornType);
     }
 
+    void serialize(JSONSerializerState& state) const;
+
 private:
     std::vector<Triangle> triangles;
     f64 fitness = 1e18;

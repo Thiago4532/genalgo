@@ -3,7 +3,6 @@
 #include <glad/glad.h>
 #include <fstream>
 #include <sstream>
-#include <iostream>
 #include "defer.hpp"
 #include "GLStateManager.hpp"
 #include "resource.hpp"

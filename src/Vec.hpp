@@ -16,7 +16,7 @@ struct Vec<2, T> {
     T y;
 
     Vec() = default;
-    Vec(T const& x, T const& y) noexcept
+    GA_CUDA Vec(T const& x, T const& y) noexcept
         : x(x), y(y) {}
 };
 
@@ -27,7 +27,7 @@ struct Vec<3, T> {
     union { T z, b; };
 
     Vec() = default;
-    Vec(T const& x, T const& y, T const& z) noexcept
+    GA_CUDA Vec(T const& x, T const& y, T const& z) noexcept
         : x(x), y(y), z(z) {}
 };
 
@@ -39,40 +39,40 @@ struct Vec<4, T> {
     union { T w, a; };
 
     Vec() = default;
-    Vec(T const& x, T const& y, T const& z, T const& w) noexcept
+    GA_CUDA Vec(T const& x, T const& y, T const& z, T const& w) noexcept
         : x(x), y(y), z(z), w(w) {}
 };
 
 template <i32 N, typename T>
-const T* as_array(const Vec<N, T>& vec) {
+GA_CUDA const T* as_array(const Vec<N, T>& vec) {
     static_assert(sizeof(Vec<N, T>) == N * sizeof(T)
         && alignof(Vec<N, T>) == alignof(T), "Vec must be tightly packed");
     return reinterpret_cast<const T*>(&vec);
 }
 
 template <i32 N, typename T>
-T* as_array(Vec<N, T>& vec) {
+GA_CUDA T* as_array(Vec<N, T>& vec) {
     static_assert(sizeof(Vec<N, T>) == N * sizeof(T)
         && alignof(Vec<N, T>) == alignof(T), "Vec must be tightly packed");
     return reinterpret_cast<T*>(&vec);
 }
 
 template <i32 N, typename T>
-Vec<N, T>& from_array(T* array) {
+GA_CUDA Vec<N, T>& from_array(T* array) {
     static_assert(sizeof(Vec<N, T>) == N * sizeof(T)
         && alignof(Vec<N, T>) == alignof(T), "Vec must be tightly packed");
     return *reinterpret_cast<Vec<N, T>*>(array);
 }
 
 template <i32 N, typename T>
-const Vec<N, T>& from_array(const T* array) {
+GA_CUDA const Vec<N, T>& from_array(const T* array) {
     static_assert(sizeof(Vec<N, T>) == N * sizeof(T)
         && alignof(Vec<N, T>) == alignof(T), "Vec must be tightly packed");
     return *reinterpret_cast<const Vec<N, T>*>(array);
 }
 
 template <i32 N, typename T>
-auto operator+(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
+GA_CUDA auto operator+(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
     const T* lhs_ = as_array(lhs);
     const T* rhs_ = as_array(rhs);
     T result[N];
@@ -84,7 +84,7 @@ auto operator+(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
 }
 
 template <i32 N, typename T>
-auto operator-(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
+GA_CUDA auto operator-(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
     const T* lhs_ = as_array(lhs);
     const T* rhs_ = as_array(rhs);
     T result[N];
@@ -96,7 +96,7 @@ auto operator-(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
 }
 
 template <i32 N, typename T>
-auto operator*(const Vec<N, T>& lhs, T const& rhs) {
+GA_CUDA auto operator*(const Vec<N, T>& lhs, T const& rhs) {
     const T* lhs_ = as_array(lhs);
     T result[N];
     for (i32 i = 0; i < N; ++i) {
@@ -107,7 +107,7 @@ auto operator*(const Vec<N, T>& lhs, T const& rhs) {
 }
 
 template <i32 N, typename T>
-auto operator*(T const& lhs, const Vec<N, T>& rhs) {
+GA_CUDA auto operator*(T const& lhs, const Vec<N, T>& rhs) {
     const T* rhs_ = as_array(rhs);
     T result[N];
     for (i32 i = 0; i < N; ++i) {
@@ -118,7 +118,7 @@ auto operator*(T const& lhs, const Vec<N, T>& rhs) {
 }
 
 template <i32 N, typename T>
-auto operator/(const Vec<N, T>& lhs, T const& rhs) {
+GA_CUDA auto operator/(const Vec<N, T>& lhs, T const& rhs) {
     const T* lhs_ = as_array(lhs);
     T result[N];
     for (i32 i = 0; i < N; ++i) {
@@ -129,7 +129,7 @@ auto operator/(const Vec<N, T>& lhs, T const& rhs) {
 }
 
 template <i32 N, typename T>
-Vec<N, T>& operator+=(Vec<N, T>& lhs, const Vec<N, T>& rhs) {
+GA_CUDA Vec<N, T>& operator+=(Vec<N, T>& lhs, const Vec<N, T>& rhs) {
     T* lhs_ = as_array(lhs);
     const T* rhs_ = as_array(rhs);
     for (i32 i = 0; i < N; ++i) {
@@ -140,7 +140,7 @@ Vec<N, T>& operator+=(Vec<N, T>& lhs, const Vec<N, T>& rhs) {
 }
 
 template <i32 N, typename T>
-Vec<N, T>& operator-=(Vec<N, T>& lhs, const Vec<N, T>& rhs) {
+GA_CUDA Vec<N, T>& operator-=(Vec<N, T>& lhs, const Vec<N, T>& rhs) {
     T* lhs_ = as_array(lhs);
     const T* rhs_ = as_array(rhs);
     for (i32 i = 0; i < N; ++i) {
@@ -151,7 +151,7 @@ Vec<N, T>& operator-=(Vec<N, T>& lhs, const Vec<N, T>& rhs) {
 }
 
 template <i32 N, typename T>
-Vec<N, T>& operator*=(Vec<N, T>& lhs, T const& rhs) {
+GA_CUDA Vec<N, T>& operator*=(Vec<N, T>& lhs, T const& rhs) {
     T* lhs_ = as_array(lhs);
     for (i32 i = 0; i < N; ++i) {
         lhs_[i] *= rhs;
@@ -161,7 +161,7 @@ Vec<N, T>& operator*=(Vec<N, T>& lhs, T const& rhs) {
 }
 
 template <i32 N, typename T>
-Vec<N, T>& operator/=(Vec<N, T>& lhs, T const& rhs) {
+GA_CUDA Vec<N, T>& operator/=(Vec<N, T>& lhs, T const& rhs) {
     T* lhs_ = as_array(lhs);
     for (i32 i = 0; i < N; ++i) {
         lhs_[i] /= rhs;
@@ -171,7 +171,7 @@ Vec<N, T>& operator/=(Vec<N, T>& lhs, T const& rhs) {
 }
 
 template <i32 N, typename T>
-T norm(const Vec<N, T>& vec) {
+GA_CUDA T norm(const Vec<N, T>& vec) {
     const T* vec_ = as_array(vec);
     T result {0};
     for (i32 i = 0; i < N; ++i) {

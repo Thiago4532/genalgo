@@ -2,6 +2,8 @@
 #define GENALGO_ARITHMETICCONCEPTS_HPP
 
 #include "base.hpp"
+#if GA_HAS_CPP20
+
 #include <concepts>
 
 GA_NAMESPACE_BEGIN
@@ -37,5 +39,6 @@ concept InlineDivisible = requires(T a, U b) {
 
 GA_NAMESPACE_END
 
-#endif // GENALGO_ARITHMETICCONCEPTS_HPP
+#endif // GA_HAS_CPP20
 
+#endif // GENALGO_ARITHMETICCONCEPTS_HPP

@@ -3,7 +3,7 @@
 
 #include "base.hpp"
 
-#if GA_TSL_SUPPORT
+#if GA_HAS_CPP20
 #include "tsl/cstring_ref.hpp"
 #endif
 
@@ -21,7 +21,7 @@ public:
     Image& operator=(Image&& other) = delete;
 
     Image(u32 width, u32 height);
-#if GA_TSL_SUPPORT
+#if GA_HAS_CPP20
     bool load(tsl::cstring_ref filename);
 #endif
 

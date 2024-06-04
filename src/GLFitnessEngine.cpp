@@ -1,7 +1,6 @@
 #include "GLFitnessEngine.hpp"
 
 #include <SFML/Window.hpp>
-#include <iostream>
 #include <thread>
 #include "CudaGLHelper.hpp"
 #include "DrawableTexture.hpp"
@@ -13,16 +12,14 @@
 
 GA_NAMESPACE_BEGIN
 
-class GLFitnessEngine::EngineImpl {
+class GLFitnessEngine::Engine {
 public:
-    EngineImpl();
-    ~EngineImpl() = default;
+    Engine();
+    ~Engine() = default;
 
     void evaluate(std::vector<Individual>& individuals);
-    int main(Population& pop);
 
 private:
-    sf::Window window;
     std::vector<DrawableTexture> individualsTxt;
     Shader individualsShader;
     u32 individualsVBO, individualsVAO;
@@ -39,7 +36,7 @@ static void throwIfGLError()  {
         throw std::runtime_error("OpenGL error: " + std::to_string(err));
 }
 
-GLFitnessEngine::EngineImpl::EngineImpl() :
+GLFitnessEngine::Engine::Engine() :
     iWidth(globalCfg.targetImage.getWidth()),
     iHeight(globalCfg.targetImage.getHeight())
 {
@@ -90,48 +87,48 @@ GLFitnessEngine::EngineImpl::EngineImpl() :
     cudaGLHelper.registerTextures(individualsTxt.size(), individualsTexIds.data());
 }
 
-int GLFitnessEngine::EngineImpl::main(Population& pop) {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+// int GLFitnessEngine::EngineImpl::main(Population& pop) {
+//     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-    i32 count = 0;
-    i32 currentGen = 0;
-    individualsTxt[currentGen].bindReadFramebuffer();
+//     i32 count = 0;
+//     i32 currentGen = 0;
+//     individualsTxt[currentGen].bindReadFramebuffer();
 
-    while (window.isOpen()) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
-                window.close();
-                std::cout << "Closing window...\n";
-            }
-            else if (event.type == sf::Event::Resized)
-                glViewport(0, 0, event.size.width, event.size.height);
-        }
+//     while (window.isOpen()) {
+//         sf::Event event;
+//         while (window.pollEvent(event)) {
+//             if (event.type == sf::Event::Closed) {
+//                 window.close();
+//                 std::cout << "Closing window...\n";
+//             }
+//             else if (event.type == sf::Event::Resized)
+//                 glViewport(0, 0, event.size.width, event.size.height);
+//         }
 
-        count++;
-        if (count >= 165) {
-            count = 0;
-            currentGen++;
-            if (currentGen >= individualsTxt.size())
-                currentGen = 0;
-            individualsTxt[currentGen].bindReadFramebuffer();
-        }
+//         count++;
+//         if (count >= 165) {
+//             count = 0;
+//             currentGen++;
+//             if (currentGen >= individualsTxt.size())
+//                 currentGen = 0;
+//             individualsTxt[currentGen].bindReadFramebuffer();
+//         }
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBlitFramebuffer(0, 0, iWidth, iHeight, 0, 0, iWidth, iHeight,
-                GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        window.display();
-    }
+//         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+//         glClear(GL_COLOR_BUFFER_BIT);
+//         glBlitFramebuffer(0, 0, iWidth, iHeight, 0, 0, iWidth, iHeight,
+//                 GL_COLOR_BUFFER_BIT, GL_NEAREST);
+//         window.display();
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
 
-void GLFitnessEngine::EngineImpl::evaluate(std::vector<Individual>& individuals) {
+void GLFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     if (individuals.size() != globalCfg.populationSize)
         throw std::runtime_error("Invalid population size");
 
-    sOpenGL.restart();
+    profiler.start("OpenGL");
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     individualsBuffer.clear();
@@ -169,8 +166,8 @@ void GLFitnessEngine::EngineImpl::evaluate(std::vector<Individual>& individuals)
     // Performance penalty, but helps profiling.
     glFinish();
 
-    sOpenGL.trigger();
-    sCuda.restart();
+    profiler.stop("OpenGL");
+    profiler.start("Cuda");
 
     // Compute fitness now
     std::vector<f64> fitness(globalCfg.populationSize);
@@ -178,23 +175,18 @@ void GLFitnessEngine::EngineImpl::evaluate(std::vector<Individual>& individuals)
     for (i32 i = 0; i < individuals.size(); ++i)
         individuals[i].setFitness(fitness[i]);
 
-    sCuda.trigger();
+    profiler.stop("Cuda");
 }
 
 // Wrapper for the actual implementation of the engine
 
 GLFitnessEngine::GLFitnessEngine():
-    impl(std::make_unique<EngineImpl>()) {}
+    impl(std::make_unique<Engine>()) {}
 
 GLFitnessEngine::~GLFitnessEngine() = default;
 
 void GLFitnessEngine::evaluate(std::vector<Individual>& individuals) {
     impl->evaluate(individuals);
 }
-
-int GLFitnessEngine::main(Population& pop) {
-    return impl->main(pop);
-}
-
 
 GA_NAMESPACE_END

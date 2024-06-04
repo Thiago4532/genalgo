@@ -2,8 +2,9 @@
 #include "globalConfig.hpp"
 #include "globalRNG.hpp"
 #include <algorithm>
-#include <iostream>
+#include <stdexcept>
 #include "FitnessEngine.hpp"
+#include "JSONSerializer/vector_serializer.hpp"
 
 GA_NAMESPACE_BEGIN
 
@@ -82,6 +83,10 @@ Population Population::breed() {
     }
 
     return nextGen;
+}
+
+void Population::serialize(JSONSerializerState& state) const {
+    state.return_value(individuals);
 }
 
 GA_NAMESPACE_END

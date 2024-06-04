@@ -3,7 +3,7 @@
 #include "globalRNG.hpp"
 #include "globalConfig.hpp"
 #include <algorithm>
-#include <iostream>
+#include "JSONSerializer/vector_serializer.hpp"
 
 GA_NAMESPACE_BEGIN
 
@@ -142,6 +142,10 @@ Individual Individual::crossover(Individual const& other) const {
             child.bornType = BornType::CrossMutation;
     }
     return child;
+}
+
+void Individual::serialize(JSONSerializerState& state) const {
+    state.return_value(triangles);
 }
 
 GA_NAMESPACE_END

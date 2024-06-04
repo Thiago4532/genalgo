@@ -4,6 +4,7 @@
 #include "Color.hpp"
 #include "Point.hpp"
 #include "base.hpp"
+#include "JSONSerializer.hpp"
 
 GA_NAMESPACE_BEGIN
 
@@ -17,6 +18,8 @@ struct Triangle {
     bool mutateFineScale();
 
     bool mutate();
+
+    void serialize(JSONSerializerState& state) const;
 };
 
 GA_NAMESPACE_END

@@ -3,9 +3,11 @@
 
 #include "base.hpp"
 #include "ArithmeticConcepts.hpp"
+#include "JSONSerializer.hpp"
 
 GA_NAMESPACE_BEGIN
 
+// Operators are only available in C++20
 template <typename T>
 struct Point {
     T x, y;
@@ -15,6 +17,7 @@ struct Point {
     constexpr Point(T const& x, T const& y) noexcept
         : x(x), y(y) {}
 
+#if GA_HAS_CPP20
     template<typename U>
         requires (!std::same_as<T, U>
                && std::convertible_to<U, T>)
@@ -27,7 +30,10 @@ struct Point {
                && std::constructible_from<T, U>)
     explicit constexpr Point(Point<U> const& other) noexcept
         : x(static_cast<T>(other.x)), y(static_cast<T>(other.y)) {}
+#endif
 };
+
+#if GA_HAS_CPP20
 
 template <typename T, Addable<T> U>
 auto operator+(const Point<T>& lhs, const Point<U>& rhs) {
@@ -81,6 +87,14 @@ Point<T>& operator/=(Point<T>& lhs, U&& rhs) {
     lhs.y /= rhs;
     return lhs;
 }
+
+inline void serialize(JSONSerializerState& state, const Point<i32>& value) {
+    state.return_object()
+        .add("x", value.x)
+        .add("y", value.y);
+}
+
+#endif // GA_HAS_CPP20
 
 GA_NAMESPACE_END
 

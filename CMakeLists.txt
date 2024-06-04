@@ -14,11 +14,12 @@ find_package(SFML 2.6 COMPONENTS window system graphics REQUIRED)
 add_subdirectory(glad/)
 add_subdirectory(tsl/)
 
-add_library(CudaGLHelper OBJECT src/CudaGLHelper.cu)
-target_compile_features(CudaGLHelper PUBLIC cxx_std_20)
-target_link_libraries(CudaGLHelper PRIVATE
-  tsl
-)
+add_library(genalgoCuda OBJECT src/CudaGLHelper.cu src/CudaFitnessEngine.cu)
+target_include_directories(genalgoCuda PRIVATE src/)
+target_compile_features(genalgoCuda PUBLIC cxx_std_17)
+# target_link_libraries(genalgoCuda PRIVATE
+#   tsl
+# )
 
 add_executable(genalgo
   src/main.cpp
@@ -35,6 +36,8 @@ add_executable(genalgo
   src/SFMLRenderer.cpp
   src/DrawableTexture.cpp
   src/PoorProfiler.cpp
+  src/SignalHandler.cpp
+  src/JSONSerializer.cpp
 )
 
 target_compile_features(genalgo PRIVATE cxx_std_20)
@@ -46,7 +49,7 @@ target_link_libraries(genalgo PRIVATE
   sfml-graphics
   tsl
   glad
-  CudaGLHelper
+  genalgoCuda
   # glfw
 )
 

@@ -65,11 +65,13 @@ void CudaGLHelper::registerTextures(i32 count, u32 textures[]) {
 __global__ void computeFitnessKernel(
         Vec3d* target,
         cudaTextureObject_t* textures,
-        f64* fitness, i32 width, i32 height) {
+        f64* fitness, i32 width, i32 height, i32 populationSize) {
 
     i32 numTasks = width * height;
     i32 threadId = blockDim.x * blockIdx.x + threadIdx.x;
     i32 i = threadId / THREADS_PER_INDIVIDUAL;
+    if (i >= populationSize)
+        return;
     i32 j = threadId % THREADS_PER_INDIVIDUAL;
 
     f64 fitnessSum = 0.0;
@@ -102,16 +104,16 @@ void CudaGLHelper::computeFitness(std::vector<f64>& fitness) {
         std::abort();
     }
 
-    defer { sCudaCleanup.trigger(); };
+    defer { profiler.stop("Cleanup"); };
 
-    sCudaMapping.restart();
+    profiler.start("Mapping");
     std::vector<cudaArray_t> textureArrays(resources.size());
     std::vector<cudaTextureObject_t> textureObjects(resources.size());
 
     CUDA_CHECK(cudaGraphicsMapResources(resources.size(), resources.data()));
     defer { cudaGraphicsUnmapResources(resources.size(), resources.data()); };
-    sCudaMapping.trigger();
-    sCudaTextures.restart();
+    profiler.stop("Mapping");
+    profiler.start("Textures");
 
     cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
@@ -133,23 +135,23 @@ void CudaGLHelper::computeFitness(std::vector<f64>& fitness) {
         resDesc.res.array.array = textureArrays[i];
         CUDA_CHECK(cudaCreateTextureObject(&textureObjects[i], &resDesc, &texDesc, nullptr));
     }
-    sCudaTextures.trigger();
+    profiler.stop("Textures");
 
     defer {
-        sCudaCleanup.restart();
+        profiler.start("Cleanup");
         for (i32 i = 0; i < resources.size(); ++i)
             cudaDestroyTextureObject(textureObjects[i]);
-        sCudaCleanup.trigger();
+        profiler.stop("Cleanup");
     };
 
-    sCudaCopy.restart();
+    profiler.start("Copy");
     cudaTextureObject_t* d_textureObjects;
     CUDA_CHECK(cudaMalloc(&d_textureObjects, textureObjects.size() * sizeof(cudaTextureObject_t)));
     defer { cudaFree(d_textureObjects); };
     CUDA_CHECK(cudaMemcpy(d_textureObjects, textureObjects.data(), textureObjects.size() * sizeof(cudaTextureObject_t), cudaMemcpyHostToDevice));
-    sCudaCopy.trigger();
+    profiler.stop("Copy");
 
-    sCudaKernel.restart();
+    profiler.start("Kernel");
 
     // Launch kernel
     i32 N = resources.size() * THREADS_PER_INDIVIDUAL;
@@ -160,11 +162,11 @@ void CudaGLHelper::computeFitness(std::vector<f64>& fitness) {
     computeFitnessKernel<<<BLOCKS, THREADS>>>(
             imageInDevice,
             d_textureObjects,
-            fitnessInDevice, width, height);
+            fitnessInDevice, width, height, globalCfg.populationSize);
     CUDA_CHECK(cudaMemcpy(fitness.data(), fitnessInDevice, fitness.size() * sizeof(f64), cudaMemcpyDeviceToHost));
-    sCudaKernel.trigger();
+    profiler.stop("Kernel");
 
-    sCudaCleanup.restart();
+    profiler.start("Cleanup");
 }
 
 void CudaGLHelper::unregisterTextures() {

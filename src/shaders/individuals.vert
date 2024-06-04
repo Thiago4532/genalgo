@@ -8,7 +8,7 @@ uniform ivec2 iSize;
 
 void main() {
     vec2 pos = vec2(mPos) / vec2(iSize);
-    pos.y = 1.0f - pos.y;
+    // pos.y = 1.0f - pos.y;
     pos = pos * 2.0f - 1.0f;
 
     uint r = (mColor >> 24) & 255u;

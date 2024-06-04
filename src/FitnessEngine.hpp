@@ -12,6 +12,7 @@ public:
     FitnessEngine() noexcept = default;
     virtual ~FitnessEngine() = default;
 
+    virtual const char* getEngineName() const noexcept = 0;
     virtual void evaluate(std::vector<Individual>& individuals) = 0;
 };
 

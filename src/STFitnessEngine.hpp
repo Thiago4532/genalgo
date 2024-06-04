@@ -12,6 +12,10 @@ public:
     STFitnessEngine() = default;
     ~STFitnessEngine() override = default;
 
+    virtual const char* getEngineName() const noexcept override {
+        return "STFitnessEngine";
+    }
+
     void evaluate(std::vector<Individual>& individuals) override;
 };
 

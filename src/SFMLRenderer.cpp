@@ -1,7 +1,6 @@
 #include "SFMLRenderer.hpp"
 #include "globalConfig.hpp"
 
-#include <iostream>
 #include <thread>
 #include <SFML/Graphics.hpp>
 
@@ -94,9 +93,9 @@ void SFMLRenderer::RendererImpl::processRenderRequest() {
     float scale = globalCfg.renderScale;
     for (Triangle const& t : bestIndividual) {
         sf::Color color(t.color.r, t.color.g, t.color.b, t.color.a);
-        vA.append(sf::Vertex(scale * sf::Vector2f(t.a.x, t.a.y), color));
-        vA.append(sf::Vertex(scale * sf::Vector2f(t.b.x, t.b.y), color));
-        vA.append(sf::Vertex(scale * sf::Vector2f(t.c.x, t.c.y), color));
+        vA.append(sf::Vertex(scale * sf::Vector2f(t.a.x, height - t.a.y), color));
+        vA.append(sf::Vertex(scale * sf::Vector2f(t.b.x, height - t.b.y), color));
+        vA.append(sf::Vertex(scale * sf::Vector2f(t.c.x, height - t.c.y), color));
     }
 
     renderTexture.clear();

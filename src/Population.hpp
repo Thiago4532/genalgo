@@ -1,6 +1,7 @@
 #ifndef GENALGO_POPULATION_HPP
 #define GENALGO_POPULATION_HPP
 
+#include "JSONSerializer.hpp"
 #include "base.hpp"
 #include "Individual.hpp"
 
@@ -21,6 +22,8 @@ public:
     std::vector<Individual>& getIndividuals() noexcept { return individuals; }
 
     Population breed();
+
+    void serialize(JSONSerializerState& state) const;
 private:
     std::vector<Individual> individuals;
 };

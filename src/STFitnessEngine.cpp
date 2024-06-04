@@ -6,7 +6,6 @@
 #include "defer.hpp"
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 GA_NAMESPACE_BEGIN
 
@@ -17,9 +16,9 @@ static bool pointInTriangle(Point<i32> const& p, Point<i32> const& a, Point<i32>
 
     bool b1, b2, b3;
 
-    b1 = sign(p, a, b) < 0.0;
-    b2 = sign(p, b, c) < 0.0;
-    b3 = sign(p, c, a) < 0.0;
+    b1 = sign(p, a, b) < 0;
+    b2 = sign(p, b, c) < 0;
+    b3 = sign(p, c, a) < 0;
 
     return ((b1 == b2) && (b2 == b3));
 }

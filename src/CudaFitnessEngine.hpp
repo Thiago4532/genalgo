@@ -1,5 +1,5 @@
-#ifndef GENALGO_GLFITNESSENGINE_HPP
-#define GENALGO_GLFITNESSENGINE_HPP
+#ifndef GENALGO_CUDAFITNESSENGINE_HPP
+#define GENALGO_CUDAFITNESSENGINE_HPP
 
 #include "FitnessEngine.hpp"
 #include "Population.hpp"
@@ -7,13 +7,13 @@
 
 GA_NAMESPACE_BEGIN
 
-class GLFitnessEngine final : public FitnessEngine {
+class CudaFitnessEngine final : public FitnessEngine {
 public:
-    GLFitnessEngine();
-    ~GLFitnessEngine();
+    CudaFitnessEngine();
+    ~CudaFitnessEngine();
 
     virtual const char* getEngineName() const noexcept override {
-        return "GLFitnessEngine";
+        return "CudaFitnessEngine";
     }
 
     void evaluate(std::vector<Individual>& individuals) override;
@@ -24,4 +24,4 @@ private:
 
 GA_NAMESPACE_END
 
-#endif // GENALGO_GLFITNESSENGINE_HPP
+#endif // GENALGO_CUDAFITNESSENGINE_HPP

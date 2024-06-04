@@ -11,12 +11,15 @@ struct GlobalConfig {
     // Target image 
     Image targetImage;
 
+    // File to output the population
+    const char* outputFilename = "output.json";
+
     // Number of individuals in the population
     i32 populationSize = 100;
 
     // Number of triangles in each individual
     i32 numTriangles = 100;
-    i32 maxTriangles = 2500; 
+    i32 maxTriangles = 3500; 
 
     // Number of elite individuals
     i32 eliteSize = 10;
@@ -39,7 +42,7 @@ struct GlobalConfig {
     f64 mutationShapeFineScaleChance = 0.15;
 
     // Penalty for each triangle in the individual (value is multiplied by image size)
-    f64 penalty = 0.001;
+    f64 penalty = 0.00001;
 
     // Renderer parameters
     i32 renderScale = 2;
