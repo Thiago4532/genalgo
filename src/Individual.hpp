@@ -35,8 +35,6 @@ public:
     f64 getFitness() const noexcept { return fitness; }
     void setFitness(f64 fitness) noexcept { this->fitness = fitness; }
 
-    BornType getBornType() const noexcept { return bornType; }
-
     auto begin() noexcept { return triangles.begin(); }
     auto end() noexcept { return triangles.end(); }
 
@@ -54,19 +52,10 @@ public:
     void push_back(Triangle const& triangle) { triangles.push_back(triangle); }
     void push_back(Triangle&& triangle) { triangles.push_back(triangle); } 
 
-    friend void swap(Individual& lhs, Individual& rhs) noexcept {
-        using std::swap;
-        swap(lhs.triangles, rhs.triangles);
-        swap(lhs.fitness, rhs.fitness);
-        swap(lhs.bornType, rhs.bornType);
-    }
-
     void serialize(JSONSerializerState& state) const;
-
 private:
     std::vector<Triangle> triangles;
     f64 fitness = 1e18;
-    BornType bornType = BornType::None;
 };
 
 GA_NAMESPACE_END

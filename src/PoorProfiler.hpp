@@ -6,18 +6,15 @@
 #include <string_view>
 #include <vector>
 #include <unordered_map>
-#include <ctime>
+#include <chrono>
 
 GA_NAMESPACE_BEGIN
 
 class ProfilerStopwatch {
+    using steady_clock = std::chrono::steady_clock;
+    using time_point = std::chrono::time_point<steady_clock>;
+    using duration = std::chrono::duration<double>;
 public:
-    static double getTime() {
-        struct timespec ts;
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        return ts.tv_sec + ts.tv_nsec * 1e-9;
-    }
-
     std::string_view name() const { return name_; }
     double elapsed() const { return elapsed_; }
 
@@ -27,12 +24,14 @@ public:
 
 private:
     void restart() {
-        startTime_ = getTime();
+        startTime_ = std::chrono::steady_clock::now();
     }
 
     void trigger() {
-        double endTime = getTime();
-        elapsed_ += endTime - startTime_;
+        time_point endTime = steady_clock::now();
+
+        duration elapsed = endTime - startTime_;
+        elapsed_ += std::chrono::duration_cast<duration>(elapsed).count();
     }
 
     ProfilerStopwatch(std::string_view name, ProfilerStopwatch* parent)
@@ -40,7 +39,8 @@ private:
 
     std::string name_;
     ProfilerStopwatch* parent_;
-    double startTime_, elapsed_;
+    time_point startTime_;
+    double elapsed_;
     friend class PoorProfiler;
 };
 

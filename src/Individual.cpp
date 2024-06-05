@@ -69,7 +69,8 @@ bool Individual::mutateSwap() {
     i32 j = randomI32(0, size() - 2);
     if (j >= i)
         j++;
-    std::swap(triangles[i], triangles[j]);
+    using std::swap;
+    swap(triangles[i], triangles[j]);
     return true;
 }
 
@@ -113,7 +114,6 @@ Individual Individual::crossover(Individual const& other) const {
     Individual child;
     if (std::addressof(*this) == std::addressof(other)) {
         child = *this;
-        child.bornType = BornType::None;
     } else {
         i32 szMin = size();
         i32 szMax = other.size();
@@ -135,12 +135,7 @@ Individual Individual::crossover(Individual const& other) const {
             child.push_back(other[other.size() - i]); 
     }
 
-    if (child.mutate()) {
-        if (child.bornType == BornType::None)
-            child.bornType = BornType::Crossover;
-        else
-            child.bornType = BornType::CrossMutation;
-    }
+    child.mutate();
     return child;
 }
 

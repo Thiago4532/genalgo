@@ -46,16 +46,6 @@ static bool setupConfiguration() {
     return true;
 }
 
-struct example {
-    int x = 0;
-    void serialize(JSONSerializerState& state) const {
-        JSONArrayBuilder arr = state.return_array();
-        arr.add(1);
-        arr.add(2);
-        arr.add("hello");
-    }
-};
-
 int main() {
     Population pop;
     pop.populate();
@@ -80,38 +70,10 @@ int main() {
     u32 renderPeriod = globalCfg.renderPeriod;
     u32 logPeriod = globalCfg.logPeriod;
 
-    bool geneticCrash = false;
-    i32 crashTimer = 100000;
-    const i32 ELITE = globalCfg.eliteSize;
-    const i32 ELITE_EXTRA = globalCfg.eliteExtraSize;
-    const i32 ELITE_BREED_POOL = globalCfg.eliteBreedPoolSize;
-
     std::cout << std::fixed << std::setprecision(2);
     i64 nGen;
     for (nGen = 1; !shouldStop(); ++nGen) {
         profiler.start("loop");
-
-        // Genetic crash: kill most individuals, reproduce just a few and repopulate
-        // crashTimer--;
-        // if (crashTimer <= 0) {
-        //     geneticCrash ^= 1;
-        //     if (geneticCrash) {
-        //         crashTimer = 1000;
-        //         globalCfg.eliteSize = 2;
-        //         globalCfg.eliteExtraSize = 0;
-        //         globalCfg.eliteBreedPoolSize = 2;
-        //     } else {
-        //         crashTimer = 100000;
-        //         globalCfg.eliteSize = ELITE;
-        //         globalCfg.eliteExtraSize = ELITE_EXTRA;
-        //         globalCfg.eliteBreedPoolSize = ELITE_BREED_POOL;
-
-        //         // Erase everyone after the first 5
-        //         if (pop.getIndividuals().size() > 5)
-        //             pop.getIndividuals().erase(pop.getIndividuals().begin() + 5, pop.getIndividuals().end());
-        //         pop.populate();
-        //     }
-        // }
 
         profiler.start("evaluation", engineName);
         pop.evaluate(engine);
@@ -139,27 +101,80 @@ int main() {
 
         profiler.stop("loop");
         if (nGen % logPeriod == 0) {
-            std::cout << "Generation " << nGen << ' ' << (geneticCrash ? "(ON)" : "(OFF)") << '\n';
+            std::cout << "Generation " << nGen << '\n';
             std::cout << "Seed " << globalCfg.seed << '\n';
             
-            const char* bornType;
-            switch (bestIndividual.getBornType()) {
-            case Individual::BornType::None:
-                bornType = "Nothing";
-                break;
-            case Individual::BornType::Mutation:
-                bornType = "Mutation";
-                break;
-            case Individual::BornType::Crossover:
-                bornType = "Crossover";
-                break;
-            case Individual::BornType::CrossMutation:
-                bornType = "Cross-mutation";
-                break;
-            }
-
             std::cout << "Best fitness so far: " << bestIndividual.size() << " " <<
-                bestIndividual.getFitness() << ' ' << bornType << '\n';
+                bestIndividual.getFitness() << '\n';
+
+            // i32 total = 0;
+            // double maxRatio = 0.0;
+            // for (Individual const& i : pop.getIndividuals()) {
+            //     i32 amount[4] = {0, 0, 0, 0};
+            //     for (Triangle const& t : i) {
+            //         i32 minX = std::min({t.a.x, t.b.x, t.c.x});
+            //         i32 minY = std::min({t.a.y, t.b.y, t.c.y});
+            //         i32 maxX = std::max({t.a.x, t.b.x, t.c.x});
+            //         i32 maxY = std::max({t.a.y, t.b.y, t.c.y});
+
+            //         static constexpr auto cross = [](Point<i32> const& a, Point<i32> const& b, Point<i32> const& c) {
+            //             return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+            //         };
+            //         static constexpr auto transform = [](Point<i32> const& p, bool flipX, bool flipY) {
+            //             Point<i32> r;
+            //             r.x = flipX ? globalCfg.targetImage.getWidth() - p.x : p.x;
+            //             r.y = flipY ? globalCfg.targetImage.getHeight() - p.y : p.y;
+            //             return r;
+            //         };
+
+            //         static constexpr auto check = [](Triangle const& t, bool flipX, bool flipY) {
+            //             Point<i32> a = transform(t.a, flipX, flipY);
+            //             Point<i32> b = transform(t.b, flipX, flipY);
+            //             Point<i32> c = transform(t.c, flipX, flipY);
+
+            //             i32 halfWidth = (globalCfg.targetImage.getWidth() + 1) / 2;
+            //             i32 halfHeight = (globalCfg.targetImage.getHeight() + 1) / 2;
+
+            //             if (a.x <= halfWidth && a.y <= halfHeight)
+            //                 return true;
+            //             if (b.x <= halfWidth && b.y <= halfHeight)
+            //                 return true;
+            //             if (c.x <= halfWidth && c.y <= halfHeight)
+            //                 return true;
+
+            //             Point minX = a;
+            //             if (b.x < minX.x)
+            //                 minX = b;
+            //             if (c.x < minX.x)
+            //                 minX = c;
+
+            //            Point minY = a; 
+            //            if (b.y < minY.y)
+            //                minY = b;
+            //            if (c.y < minY.y)
+            //                minY = c;
+
+            //            if (minX.y > halfHeight || minY.x > halfWidth)
+            //                return false;
+
+            //            auto C = cross(minX, {halfWidth, halfHeight}, minY);
+            //            return (C <= 0);
+            //         };
+
+            //         amount[0] += check(t, false, false);
+            //         amount[1] += check(t, true, false);
+            //         amount[2] += check(t, false, true);
+            //         amount[3] += check(t, true, true);
+                    
+            //         total++;
+            //     }
+
+            //     i32 largest = std::max({amount[0], amount[1], amount[2], amount[3]});
+            //     double ratio = 100.0 * largest / i.size();
+            //     maxRatio = std::max(maxRatio, ratio);
+            // }
+
+            // std::cout << "Ratio: " << maxRatio << "%\n";
 
             ProfilerStopwatch& sLoop = profiler.getStopwatch("loop");
             auto printTime = [&](std::string_view name, i32 level, double time, bool printPercent = true) {
@@ -188,6 +203,11 @@ int main() {
                 stopwatchStack.push(&sw);
             }
             printTime("Total", 0, sLoop.elapsed(), false);
+
+            // if (nGen == 1350) {
+            //     std::cout << "Fitness: " << bestIndividual.getFitness() << '\n';
+            //     break;
+            // }
         }
     }
 

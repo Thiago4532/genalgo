@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <unistd.h>
 #include "PoorProfiler.hpp"
 #include "Vec.hpp"
 #include "defer.hpp"
@@ -25,7 +26,19 @@ struct VecTriangle {
     Color color;
 };
 static_assert(sizeof(VecTriangle) == sizeof(Triangle) &&
-              alignof(VecTriangle) == alignof(Triangle), "VecTriangle is not layout-compatible with Triangle");
+        alignof(VecTriangle) == alignof(Triangle), "VecTriangle is not layout-compatible with Triangle");
+
+struct OptimizedVecTriangle {
+    Vec2i a, b, c;
+    Vec3f color;
+    f32 alpha;
+    bool use;
+};
+
+struct IndividualInfo {
+    i32 offset;
+    i32 size;
+};
 
 template<typename T>
 inline void deviceMalloc(T** ptr, size_t count) {
@@ -39,7 +52,17 @@ inline T* deviceMalloc(size_t count) {
     return ptr;
 }
 
-static __host__ __device__
+template<typename T>
+inline void copyHostToDevice(T* device, T const* host, size_t count) {
+    CUDA_CHECK(cudaMemcpy(device, host, count * sizeof(T), cudaMemcpyHostToDevice));
+}
+
+template<typename T>
+inline void copyDeviceToHost(T* host, T const* device, size_t count) {
+    CUDA_CHECK(cudaMemcpy(host, device, count * sizeof(T), cudaMemcpyDeviceToHost));
+}
+
+inline static __host__ __device__
 Vec3f fromColor(Color c) {
     return Vec3f{1.0f * c.r, 1.0f * c.g, 1.0f * c.b};
 }
@@ -53,10 +76,10 @@ public:
 private:
     std::vector<VecTriangle> triangles;
     std::vector<f64> fitnesses;
-    Vec2i* hostNumTriangles = nullptr;
+    IndividualInfo* hostIndividualInfo = nullptr;
 
     f64* deviceFitnesses = nullptr;
-    Vec2i* deviceNumTriangles = nullptr;
+    IndividualInfo* deviceIndividualInfo = nullptr;
     Vec3f* deviceCanvas = nullptr;
     Vec3f* deviceImage = nullptr;
 
@@ -81,37 +104,52 @@ CudaFitnessEngine::Engine::Engine() {
     triangles.reserve(populationSize * 100);
     fitnesses.resize(populationSize);
 
-    hostNumTriangles = new Vec2i[populationSize];
+    hostIndividualInfo = new IndividualInfo[populationSize];
 
     deviceMalloc(&deviceFitnesses, populationSize);
     deviceMalloc(&deviceCanvas, canvasSize);
     deviceMalloc(&deviceImage, imSize);
-    deviceMalloc(&deviceNumTriangles, populationSize);
+    deviceMalloc(&deviceIndividualInfo, populationSize);
 
     Vec3f* hostImage = new Vec3f[imSize];
     defer { delete[] hostImage; };
 
     Color* target = reinterpret_cast<Color*>(globalCfg.targetImage.getData());
-    for (i32 y = 0; y < imHeight; ++y) {
-        for (i32 x = 0; x < imWidth; ++x) {
-            i32 i = y * imWidth + x;
-            hostImage[i] = (target[i].a / 255.0f) * fromColor(target[i]);
+    i32 j = 0;
+
+    for (i32 tileY = 0; tileY < (imHeight + 15)/16; ++tileY) {
+        for (i32 tileX = 0; tileX < (imWidth + 15)/16; ++tileX) {
+            for (i32 dy = 0; dy < 16; dy++) {
+                for (i32 dx = 0; dx < 16; dx++) {
+                    i32 y = tileY * 16 + dy;
+                    i32 x = tileX * 16 + dx;
+                    if (x >= imWidth || y >= imHeight)
+                        continue;
+
+                    i32 i = y * imWidth + x;
+                    hostImage[j++] = (target[i].a / 255.0f) * fromColor(target[i]);
+                }
+            }
         }
     }
+    if (j != imSize) {
+        std::fprintf(stderr, "CudaFitnessEngine: j != imSize\n");
+        std::abort();
+    }
 
-    CUDA_CHECK(cudaMemcpy(deviceImage, hostImage, imSize * sizeof(Vec3f), cudaMemcpyHostToDevice));
+    copyHostToDevice(deviceImage, hostImage, imSize);
 }
 
 CudaFitnessEngine::Engine::~Engine() {
     cudaFree(deviceFitnesses);
     cudaFree(deviceCanvas);
     cudaFree(deviceImage);
-    cudaFree(deviceNumTriangles);
+    cudaFree(deviceIndividualInfo);
 
-    free(hostNumTriangles);
+    free(hostIndividualInfo);
 }
 
-static __device__
+inline static __device__
 bool pointInTriangle(Vec2i p, Vec2i a, Vec2i b, Vec2i c) {
     auto sign = [](Vec2i p1, Vec2i p2, Vec2i p3) {
         return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
@@ -125,43 +163,114 @@ bool pointInTriangle(Vec2i p, Vec2i a, Vec2i b, Vec2i c) {
     return ((b1 == b2) && (b2 == b3));
 }
 
-inline static __device__
-Vec3f colorBlend(Vec3f dst, Color src) {
-    float alpha = src.a / 255.0;
+// inline static __device__
+// Vec3f colorBlend(Vec3f dst, Color src) {
+//     float alpha = src.a / 255.0;
 
-    return dst * (1.0f - alpha) + fromColor(src) * alpha;
+//     return dst * (1.0f - alpha) + fromColor(src) * alpha;
+// }
+
+inline static __device__
+Vec3f colorBlend(Vec3f dst, Vec3f src, f32 alpha) {
+    return dst * (1.0f - alpha) + src * alpha;
 }
 
-[[maybe_unused]] static __global__
-void drawTriangles(Vec3f* allCanvas, VecTriangle* allTriangles, Vec2i* allNumTriangles, i32 width, i32 height, i32 populationSize) {
-    i32 size = width * height;
+inline static __device__
+bool isTriangleInBounds(VecTriangle const& t, i32 x, i32 y) {
+    i32 x2 = x + 16;
+    i32 y2 = y + 16;
 
-    i32 xy = blockIdx.x * blockDim.x + threadIdx.x;
-    i32 i = blockIdx.y;
-    if (xy >= size)
-        return;
+    i32 minX = min(t.a.x, min(t.b.x, t.c.x));
+    i32 minY = min(t.a.y, min(t.b.y, t.c.y));
+    i32 maxX = max(t.a.x, max(t.b.x, t.c.x));
+    i32 maxY = max(t.a.y, max(t.b.y, t.c.y));
 
-    Vec3f* canvas = allCanvas + i * size;
-    VecTriangle* triangles = allTriangles + allNumTriangles[i].x;
-    i32 numTriangles = allNumTriangles[i].y;
+    bool bad = false;
+    bad |= (minX >= x2);
+    bad |= (maxX < x);
+    bad |= (minY >= y2);
+    bad |= (maxY < y);
 
-    extern __shared__ VecTriangle sharedTriangles[];
+    return !bad;
+}
+
+struct GPUImageInfo {
+    Vec3f* canvas;
+    i32 width, height;
+    i32 size;
+};
+
+struct GPUDrawData {
+    VecTriangle* triangles;
+    IndividualInfo* info;
+};
+
+static __global__
+void drawTriangles(GPUImageInfo image, GPUDrawData data) {
+    i32 width = image.width;
+    i32 height = image.height;
+
+    i32 tileX = blockIdx.x;
+    i32 tileY = blockIdx.y;
+    i32 i = blockIdx.z;
+
+    VecTriangle* triangles;
+    i32 numTriangles;
+
+    triangles = data.triangles + data.info[i].offset;
+    numTriangles = data.info[i].size;
+
+    extern __shared__ OptimizedVecTriangle sharedTriangles[];
+    __shared__ i32 numTrianglesShared;
+
     for (i32 j = threadIdx.x; j < numTriangles; j += blockDim.x) {
-        sharedTriangles[j] = triangles[j];
+        VecTriangle const& t = triangles[j];
+        sharedTriangles[j].a = t.a;
+        sharedTriangles[j].b = t.b;
+        sharedTriangles[j].c = t.c;
+        sharedTriangles[j].color = fromColor(t.color);
+        sharedTriangles[j].alpha = t.color.a / 255.0f;
+
+        bool bounds = isTriangleInBounds(triangles[j], 16 * tileX, 16 * tileY);
+        sharedTriangles[j].use = bounds;
+    }
+    __syncthreads();
+    if (threadIdx.x == 0) {
+        i32 m = 0;
+        for (i32 j = 0; j < numTriangles; j++) {
+            if (!sharedTriangles[j].use)
+                continue;
+
+            i32 idx = m++;
+            sharedTriangles[idx] = sharedTriangles[j];
+        }
+        numTrianglesShared = m;
     }
     __syncthreads();
 
+    i32 x = tileX * 16 + threadIdx.x % 16;
+    i32 y = tileY * 16 + threadIdx.x / 16;
+
+    if (x >= width || y >= height)
+        return;
+
     Vec3f pixel = Vec3f{0.0, 0.0, 0.0};
 
-    i32 x = xy % width;
-    i32 y = xy / width;
+    for (i32 j = 0; j < numTrianglesShared; ++j) {
+        OptimizedVecTriangle const& t = sharedTriangles[j];
 
-    for (i32 j = 0; j < numTriangles; ++j) {
-        VecTriangle const& t = sharedTriangles[j];
         if (pointInTriangle(Vec2i{x, y}, t.a, t.b, t.c)) {
-            pixel = colorBlend(pixel, t.color);
+            pixel = colorBlend(pixel, t.color, t.alpha);
         }
     }
+
+    Vec3f* canvas = image.canvas + i * image.size;
+
+    i32 m = 16;
+    if (tileY == image.height / 16)
+        m = image.height % 16;
+
+    i32 xy = 16 * (tileY * width + m * tileX) + threadIdx.x;
     canvas[xy] = pixel;
 }
 
@@ -203,56 +312,75 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
 
     defer { profiler.stop("cudaFitness:cleanup"); };
 
-    std::vector<VecTriangle> hostTriangles(triangles.size());
+    // FIXME: Remove this
+    // static i32 generation = 0;
+    // i64 total = 0;
+    // i64 amount_l = 0, amount_r = 0;
 
+    profiler.start("cudaFitness:prepare", "Prepare");
     i32 maxTriangles = 0;
     triangles.clear();
     for (i32 i = 0; i < populationSize; ++i) {
         Individual const& ind = individuals[i];
-        hostNumTriangles[i].x = triangles.size();
-        hostNumTriangles[i].y = ind.size();
         maxTriangles = std::max(maxTriangles, ind.size());
+
+        hostIndividualInfo[i].offset = triangles.size();
         for (Triangle const& t : ind) {
             VecTriangle vt;
             vt.a = Vec2i(t.a.x, t.a.y);
             vt.b = Vec2i(t.b.x, t.b.y);
             vt.c = Vec2i(t.c.x, t.c.y);
             vt.color = t.color;
+
             triangles.push_back(vt);
         }
+
+        hostIndividualInfo[i].size = ind.size();
     }
+    profiler.stop("cudaFitness:prepare");
+
+    // generation++;
+    // total = triangles.size();
+    // if (generation % 10 == 0) {
+    //     double ratio = 100 * (amount_l + amount_r) / (double)total;
+    //     std::fprintf(stderr, "Generation %d: %.2f%%\n", generation, ratio);
+    // }
 
     profiler.start("cudaFitness:copy2device", "Copy");
     auto deviceTriangles = deviceMalloc<VecTriangle>(triangles.size());
     defer { cudaFree(deviceTriangles); };
-    cudaMemcpy(deviceTriangles, triangles.data(), triangles.size() * sizeof(VecTriangle), cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceNumTriangles, hostNumTriangles, populationSize * sizeof(u32), cudaMemcpyHostToDevice);
-    cudaDeviceSynchronize(); // FIXME: Remove this
+    copyHostToDevice(deviceTriangles, triangles.data(), triangles.size());
+    copyHostToDevice(deviceIndividualInfo, hostIndividualInfo, populationSize);
+    cudaDeviceSynchronize();
     profiler.stop("cudaFitness:copy2device");
 
     profiler.start("cudaFitness:draw", "Draw");
     {
-        u32 THREADS = 256;
+        // Must be 256 always
+        constexpr u32 THREADS = 256;
 
         dim3 BLOCKS;
-        BLOCKS.x = (imSize + THREADS - 1) / THREADS;
-        BLOCKS.y = populationSize;
-        BLOCKS.z = 1;
+        BLOCKS.x = (imWidth + 15) / 16;
+        BLOCKS.y = (imHeight + 15) / 16;
+        BLOCKS.z = populationSize;
+
+        GPUImageInfo imageInfo {
+            .canvas = deviceCanvas,
+            .width = imWidth,
+            .height = imHeight,
+            .size = imSize
+        };
+
+        GPUDrawData data {
+            .triangles = deviceTriangles,
+            .info = deviceIndividualInfo
+        };
 
         drawTriangles<<<BLOCKS, THREADS,
-            maxTriangles * sizeof(VecTriangle)
-        >>>(deviceCanvas, deviceTriangles, deviceNumTriangles,
-                imWidth, imHeight, populationSize);
+            maxTriangles * sizeof(OptimizedVecTriangle)
+        >>>(imageInfo, data);
 
-        // u32 BLOCKS = (imSize + THREADS - 1) / THREADS;
-        // i32 numTriangles = 0;
-        // for (i32 i = 0; i < populationSize; ++i) {
-        //     drawTriangles<<<BLOCKS, THREADS>>>(deviceCanvas + i * imSize,
-        //             deviceTriangles + numTriangles, individuals[i].size(),
-        //             imWidth, imHeight, populationSize);
-        //     numTriangles += individuals[i].size();
-        // }
-        cudaDeviceSynchronize(); // FIXME: Remove this
+        CUDA_CHECK(cudaDeviceSynchronize());
     }
     profiler.stop("cudaFitness:draw");
 
@@ -260,10 +388,10 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     i32 N = populationSize * THREADS_PER_INDIVIDUAL;
     u32 THREADS = 128;
     u32 BLOCKS = (N + THREADS - 1) / THREADS;
-    cudaMemset(deviceFitnesses, 0, populationSize * sizeof(f64));
+    cudaMemset(deviceFitnesses, 0, populationSize * sizeof(*deviceFitnesses));
     computeFitnessKernel<<<BLOCKS, THREADS>>>(
             deviceImage, deviceCanvas, deviceFitnesses, imWidth, imHeight, populationSize);
-    CUDA_CHECK(cudaMemcpy(fitnesses.data(), deviceFitnesses, populationSize * sizeof(f64), cudaMemcpyDeviceToHost));
+    copyDeviceToHost(fitnesses.data(), deviceFitnesses, populationSize);
     cudaDeviceSynchronize();
     profiler.stop("cudaFitness:compute");
 
