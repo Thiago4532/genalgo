@@ -12,6 +12,38 @@
 
 GA_NAMESPACE_BEGIN
 
+const char* fragmentShader =
+    "#version 430 core\n"
+    "\n"
+    "flat in vec4 normColor;\n"
+    "out vec4 FragColor;\n"
+    "\n"
+    "void main() {\n"
+    "    FragColor = normColor;\n"
+    "}\n";
+
+const char* vertexShader = 
+    "#version 430 core\n"
+    "layout (location = 0) in ivec2 mPos;\n"
+    "layout (location = 1) in uint mColor;\n"
+    "\n"
+    "flat out vec4 normColor;\n"
+    "\n"
+    "uniform ivec2 iSize;\n"
+    "\n"
+    "void main() {\n"
+    "    vec2 pos = vec2(mPos) / vec2(iSize);\n"
+    "    pos = pos * 3.0f - 1.0f;\n"
+    "\n"
+    "    uint r = (mColor >> 24) & 255u;\n"
+    "    uint g = (mColor >> 16) & 255u;\n"
+    "    uint b = (mColor >> 8) & 255u;\n"
+    "    uint a = mColor & 255u;\n"
+    "\n"
+    "    normColor = vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);\n"
+    "    gl_Position = vec4(pos, 0.0f, 1.0f);\n"
+    "}\n";
+
 class GLFitnessEngine::Engine {
 public:
     Engine();
@@ -75,7 +107,7 @@ GLFitnessEngine::Engine::Engine() :
     glEnableVertexAttribArray(1);
     throwIfGLError();
 
-    individualsShader = Shader::fromResource("shaders/individuals.vert", "shaders/individuals.frag");
+    individualsShader = Shader(vertexShader, fragmentShader);
     individualsShader.setVec2i("iSize", iWidth, iHeight);
     individualsShader.setInt("sampler", 0);
 

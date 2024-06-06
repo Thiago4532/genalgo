@@ -7,6 +7,7 @@
 
 GA_NAMESPACE_BEGIN
 
+// FIXME: Remove this function
 std::string getResourcePath(std::string_view resource);
 
 GA_NAMESPACE_END

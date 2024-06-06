@@ -72,8 +72,8 @@ int main() {
         pop.populate();
     }
 
-    // GLFitnessEngine engine;
-    CudaFitnessEngine engine;
+    GLFitnessEngine engine;
+    // CudaFitnessEngine engine;
     // STFitnessEngine engine;    
     
     // Display the name of the engine
@@ -161,11 +161,6 @@ int main() {
                 stopwatchStack.push(&sw);
             }
             printTime("Total", 0, sLoop.elapsed(), false);
-
-            if (profiler.getStopwatch("cudaFitness:draw").elapsed() < 1.0/1000) {
-                std::cout << "Warning: drawing took less than 1ms\n";
-                break;
-            }
 
             for (ProfilerStopwatch& sw : stopwatches) {
                 sw.reset();
