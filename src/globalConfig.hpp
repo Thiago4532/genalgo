@@ -11,15 +11,20 @@ struct GlobalConfig {
     // Target image 
     Image targetImage;
 
+    // File to continue from
+    const char* inputFilename = nullptr;
+    // const char* inputFilename = "outputs/lisa.json";
+
     // File to output the population
-    const char* outputFilename = "output.json";
+    // const char* outputFilename = nullptr;
+    const char* outputFilename = "outputs/output.json";
 
     // Number of individuals in the population
     i32 populationSize = 100;
 
     // Number of triangles in each individual
     i32 numTriangles = 100;
-    i32 maxTriangles = 3500; 
+    i32 maxTriangles = 1100; 
 
     // Number of elite individuals
     i32 eliteSize = 10;
@@ -36,12 +41,13 @@ struct GlobalConfig {
 
     // Shape-specific mutation parameters 
     //   * Probabilities are mutually exclusive, they must sum to <= 1
-    f64 mutationShapeFineColorChance = 0.55;
+    f64 mutationShapeFineColorChance = 0.40;
     f64 mutationShapeFineMoveXChance = 0.15;
     f64 mutationShapeFineMoveYChance = 0.15;
     f64 mutationShapeFineScaleChance = 0.15;
+    f64 mutationShapeFineRotateChance = 0.15;
 
-    // Penalty for each triangle in the individual (value is multiplied by image size)
+    // Penalty for each triangle in the individual
     f64 penalty = 0.00001;
 
     // Renderer parameters

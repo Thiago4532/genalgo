@@ -55,6 +55,22 @@ bool Triangle::mutateFineScale() {
     return true;
 }
 
+bool Triangle::mutateFineRotate() {
+    auto rotate = [](Point<f64> p, f64 angle) {
+        return Point<f64>{p.x * std::cos(angle) - p.y * std::sin(angle),
+                          p.x * std::sin(angle) + p.y * std::cos(angle)};
+    };
+
+    f64 angle = randomF64(-0.1, 0.1);
+
+    // Rotate the triangle around its center
+    Point<f64> center = (a + b + c) / 3.0;
+    a = center + rotate(a - center, angle);
+    b = center + rotate(b - center, angle);
+    c = center + rotate(c - center, angle);
+    return true;
+}
+
 bool Triangle::mutate() {
     f64 prob = randomF64(0, 1);
     bool mutated = false;
@@ -75,15 +91,46 @@ bool Triangle::mutate() {
         return mutateFineScale();
     prob -= globalCfg.mutationShapeFineScaleChance;
 
+    if (prob < globalCfg.mutationShapeFineRotateChance)
+        return mutateFineRotate();
+    prob -= globalCfg.mutationShapeFineRotateChance;
+
     return mutated;
 }
 
-void Triangle::serialize(JSONSerializerState& state) const {
+void serialize(JSONSerializerState& state, Triangle const& self) {
     state.return_object()
-        .add("a", a)
-        .add("b", b)
-        .add("c", c)
-        .add("color", color);
+        .add("a", self.a)
+        .add("b", self.b)
+        .add("c", self.c)
+        .add("color", self.color);
+}
+
+void deserialize(JSONDeserializerState& state, Triangle& self) {
+    auto obj = state.consume_object();
+    std::string key;
+
+    bool a = false, b = false, c = false, color = false;
+    while (obj.consume_key(key)) {
+        if (key == "a" && !a) {
+            obj.consume_value(self.a);
+            a = true;
+        } else if (key == "b" && !b) {
+            obj.consume_value(self.b);
+            b = true;
+        } else if (key == "c" && !c) {
+            obj.consume_value(self.c);
+            c = true;
+        } else if (key == "color" && !color) {
+            obj.consume_value(self.color);
+            color = true;
+        } else {
+            obj.throw_unexpected_key(key);
+        }
+    }
+
+    if (!a || !b || !c || !color)
+        throw json_deserialize_exception("Triangle: Missing required fields");
 }
 
 GA_NAMESPACE_END

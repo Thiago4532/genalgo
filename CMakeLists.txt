@@ -17,6 +17,7 @@ add_subdirectory(tsl/)
 add_library(genalgoCuda OBJECT src/CudaGLHelper.cu src/CudaFitnessEngine.cu)
 target_include_directories(genalgoCuda PRIVATE src/)
 target_compile_features(genalgoCuda PUBLIC cxx_std_17)
+set_target_properties(genalgoCuda PROPERTIES CUDA_ARCHITECTURES 61)
 # target_link_libraries(genalgoCuda PRIVATE
 #   tsl
 # )
@@ -38,6 +39,7 @@ add_executable(genalgo
   src/PoorProfiler.cpp
   src/SignalHandler.cpp
   src/JSONSerializer.cpp
+  src/JSONDeserializer.cpp
 )
 
 target_compile_features(genalgo PRIVATE cxx_std_20)

@@ -19,19 +19,14 @@ public:
 };
 
 template <typename T>
-concept JSONHasSerializeMember = requires(JSONSerializerState& state, const T& t) {
-    { t.serialize(state) } -> std::same_as<void>;
-};
-
-template <typename T>
-concept JSONCallSerializable = !JSONHasSerializeMember<T> &&
+concept JSONCallSerializable = 
     requires(JSONSerializerState& state, const T& t) {
         { t(state) } -> std::same_as<void>;
     };
 
 template <typename T>
-concept JSONSerializable = requires(JSONSerializerState& state, const T& t) {
-    { serialize(state, t) } -> std::same_as<void>;
+concept JSONSerializable = requires(JSONSerializerState& state, const T& obj) {
+    { serialize(state, obj) } -> std::same_as<void>;
 };
 
 class JSONSerializerState {
@@ -52,18 +47,17 @@ public:
         serialize(*this, value);
     }
 
-    void return_i32(i32 value);
-    void return_u32(u32 value);
-    void return_i64(i64 value);
-    void return_u64(u64 value);
+    template<std::integral T>
+    void return_number(T value);
     void return_string(std::string_view value);
     void return_null();
-
     JSONObjectBuilder return_object();
     JSONArrayBuilder return_array();
+
 private:
     std::ostream& os;
     bool has_value = false;
+    void begin_return();
 };
 
 class JSONObjectBuilder {
@@ -115,37 +109,17 @@ private:
     bool separator = false;
 };
 
-template<typename T> requires std::same_as<T, i32>
+template<std::integral T>
 inline void serialize(JSONSerializerState& state, T value) {
-    state.return_i32(value);
-}
-
-template<typename T> requires std::same_as<T, u32>
-inline void serialize(JSONSerializerState& state, T value) {
-    state.return_u32(value);
-}
-
-template<typename T> requires std::same_as<T, i64>
-inline void serialize(JSONSerializerState& state, T value) {
-    state.return_i64(value);
-}
-
-template<typename T> requires std::same_as<T, u64>
-inline void serialize(JSONSerializerState& state, T value) {
-    state.return_u64(value);
+    state.return_number(value);
 }
 
 inline void serialize(JSONSerializerState& state, std::string_view value) {
     state.return_string(value);
 }
 
-template <JSONHasSerializeMember T>
-void serialize(JSONSerializerState& state, const T& value) {
-    value.serialize(state);
-}
-
 template <JSONCallSerializable T>
-void serialize(JSONSerializerState& state, const T& value) {
+inline void serialize(JSONSerializerState& state, const T& value) {
     value(state);
 }
 

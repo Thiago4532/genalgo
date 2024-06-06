@@ -9,13 +9,6 @@ GA_NAMESPACE_BEGIN
 
 class Individual {
 public:
-    enum class BornType {
-        None = 0,
-        Crossover = 1,
-        Mutation = 2,
-        CrossMutation = 3
-    };
-
     Individual() noexcept = default;
     Individual(Individual const& other) noexcept = default;
     Individual(Individual&& other) noexcept = default;
@@ -33,7 +26,9 @@ public:
     Individual crossover(Individual const& other) const;
 
     f64 getFitness() const noexcept { return fitness; }
+    f64 getWeightedFitness() const noexcept { return weightedFitness; }
     void setFitness(f64 fitness) noexcept { this->fitness = fitness; }
+    void setWeightedFitness(f64 weightedFitness) noexcept { this->weightedFitness = weightedFitness; }
 
     auto begin() noexcept { return triangles.begin(); }
     auto end() noexcept { return triangles.end(); }
@@ -52,10 +47,12 @@ public:
     void push_back(Triangle const& triangle) { triangles.push_back(triangle); }
     void push_back(Triangle&& triangle) { triangles.push_back(triangle); } 
 
-    void serialize(JSONSerializerState& state) const;
+    friend void serialize(JSONSerializerState& state, Individual const& self);
+    friend void deserialize(JSONDeserializerState& state, Individual& self);
 private:
     std::vector<Triangle> triangles;
     f64 fitness = 1e18;
+    f64 weightedFitness = 1e18;
 };
 
 GA_NAMESPACE_END

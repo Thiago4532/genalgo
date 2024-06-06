@@ -16,10 +16,12 @@ struct Triangle {
     bool mutateFineMoveX();
     bool mutateFineMoveY();
     bool mutateFineScale();
+    bool mutateFineRotate();
 
     bool mutate();
 
-    void serialize(JSONSerializerState& state) const;
+    friend void serialize(JSONSerializerState& state, Triangle const& self);
+    friend void deserialize(JSONDeserializerState& state, Triangle& self);
 };
 
 GA_NAMESPACE_END

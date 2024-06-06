@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include "FitnessEngine.hpp"
 #include "JSONSerializer/vector_serializer.hpp"
+#include "JSONDeserializer/vector_deserializer.hpp"
 
 GA_NAMESPACE_BEGIN
 
@@ -43,16 +44,19 @@ void Population::evaluate(FitnessEngine& engine) {
     engine.evaluate(individuals);
     i32 size = globalCfg.targetImage.getWidth() * globalCfg.targetImage.getHeight();
     for (Individual& i : individuals) {
-        i.setFitness(i.getFitness() + i.size() * (size * globalCfg.penalty));
+        auto fitness = i.getFitness();
+        fitness *= (1.0 + i.size() * globalCfg.penalty);
+        // fitness += i.size() * (size * globalCfg.penalty);
+        i.setWeightedFitness(fitness);
     }
 }
 
 // TODO: Make this const again
 Population Population::breed() {
     std::sort(individuals.begin(), individuals.end(), [](Individual& a, Individual& b) {
-        if (a.getFitness() == b.getFitness())
+        if (a.getWeightedFitness() == b.getWeightedFitness())
             return a.size() < b.size();
-        return a.getFitness() < b.getFitness();
+        return a.getWeightedFitness() < b.getWeightedFitness();
     });
 
     const i32 ELITE = globalCfg.eliteSize;
@@ -85,8 +89,12 @@ Population Population::breed() {
     return nextGen;
 }
 
-void Population::serialize(JSONSerializerState& state) const {
-    state.return_value(individuals);
+void serialize(JSONSerializerState& state, Population const& self) {
+    state.return_value(self.individuals);
+}
+
+void deserialize(JSONDeserializerState& state, Population& self) {
+    state.consume(self.individuals);
 }
 
 GA_NAMESPACE_END

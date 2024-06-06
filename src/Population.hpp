@@ -23,7 +23,8 @@ public:
 
     Population breed();
 
-    void serialize(JSONSerializerState& state) const;
+    friend void serialize(JSONSerializerState& state, const Population& population);
+    friend void deserialize(JSONDeserializerState& state, Population& population);
 private:
     std::vector<Individual> individuals;
 };

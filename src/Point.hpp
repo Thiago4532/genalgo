@@ -1,6 +1,7 @@
 #ifndef GENALGO_POINT_HPP
 #define GENALGO_POINT_HPP
 
+#include "JSONDeserializer.hpp"
 #include "base.hpp"
 #include "ArithmeticConcepts.hpp"
 #include "JSONSerializer.hpp"
@@ -92,6 +93,27 @@ inline void serialize(JSONSerializerState& state, const Point<i32>& value) {
     state.return_object()
         .add("x", value.x)
         .add("y", value.y);
+}
+
+inline void deserialize(JSONDeserializerState& state, Point<i32>& value) {
+    auto obj = state.consume_object();
+    std::string key;
+
+    bool x = false, y = false;
+    while (obj.consume_key(key)) {
+        if (key == "x" && !x) {
+            obj.consume_value(value.x);
+            x = true;
+        } else if (key == "y" && !y) {
+            obj.consume_value(value.y);
+            y = true;
+        } else {
+            obj.throw_unexpected_key(key);
+        }
+    }
+
+    if (!x || !y)
+        throw json_deserialize_exception("Point: Missing required fields");
 }
 
 #endif // GA_HAS_CPP20

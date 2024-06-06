@@ -4,12 +4,13 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
-#include <source_location>
 #include <stack>
+#include "AppState.hpp"
 #include "CudaFitnessEngine.hpp"
 #include "FitnessEngine.hpp"
 #include "GLFitnessEngine.hpp"
 #include "Individual.hpp"
+#include "JSONDeserializer.hpp"
 #include "JSONSerializer.hpp"
 #include "PoorProfiler.hpp"
 #include "Population.hpp"
@@ -38,17 +39,38 @@ static bool setupConfiguration() {
         return false;
     }
 
-    globalCfg.seed = 651999619; // gojo satoru: triangles 10 2500 penalty 0.01
-    // globalCfg.seed = 789671828; // monalisa: triangles 100 2500 penalty 0.001
-    // globalCfg.seed = std::random_device{}();
     globalRNG.seed(globalCfg.seed);
-
     return true;
 }
 
 int main() {
     Population pop;
-    pop.populate();
+    i64 nGen;
+
+    if (globalCfg.inputFilename) {
+        std::ifstream input(globalCfg.inputFilename);
+        if (!input) {
+            std::cerr << "Failed to open file " << globalCfg.inputFilename << '\n';
+            return 1;
+        }
+
+        AppState state {
+            .population = pop,
+            .generation = nGen,
+            .seed = globalCfg.seed
+        };
+
+        json::deserialize(input, state);
+    } else {
+        // globalCfg.seed = 651999619; // gojo satoru: triangles 10 2500 penalty 0.01
+        // globalCfg.seed = 789671828; // monalisa: triangles 100 2500 penalty 0.001
+        // globalCfg.seed = 142254205;
+        globalCfg.seed = std::random_device{}();
+        // globalCfg.seed = 2798142837;
+    
+        nGen = 1;
+        pop.populate();
+    }
 
     // GLFitnessEngine engine;
     CudaFitnessEngine engine;
@@ -62,6 +84,7 @@ int main() {
     SFMLRenderer renderer;
 
     Individual bestIndividual;
+    f64 oldBestFitness = 1e9;
     auto shouldStop = [&]() {
         return SignalHandler::interrupted()
             || renderer.exited();
@@ -71,8 +94,7 @@ int main() {
     u32 logPeriod = globalCfg.logPeriod;
 
     std::cout << std::fixed << std::setprecision(2);
-    i64 nGen;
-    for (nGen = 1; !shouldStop(); ++nGen) {
+    for (; !shouldStop(); ++nGen) {
         profiler.start("loop");
 
         profiler.start("evaluation", engineName);
@@ -80,9 +102,9 @@ int main() {
         profiler.stop("evaluation");
 
         for (Individual const& i : pop.getIndividuals()) {
-            if (i.getFitness() < bestIndividual.getFitness()) {
+            if (i.getWeightedFitness() < bestIndividual.getWeightedFitness()) {
                 bestIndividual = i;
-            } else if (i.getFitness() == bestIndividual.getFitness()) {
+            } else if (i.getWeightedFitness() == bestIndividual.getWeightedFitness()) {
                 if (i.size() < bestIndividual.size()) {
                     bestIndividual = i;
                 }
@@ -104,77 +126,13 @@ int main() {
             std::cout << "Generation " << nGen << '\n';
             std::cout << "Seed " << globalCfg.seed << '\n';
             
-            std::cout << "Best fitness so far: " << bestIndividual.size() << " " <<
-                bestIndividual.getFitness() << '\n';
+            f64 decrease = (oldBestFitness - bestIndividual.getFitness()) / oldBestFitness;
+            oldBestFitness = bestIndividual.getFitness();
 
-            // i32 total = 0;
-            // double maxRatio = 0.0;
-            // for (Individual const& i : pop.getIndividuals()) {
-            //     i32 amount[4] = {0, 0, 0, 0};
-            //     for (Triangle const& t : i) {
-            //         i32 minX = std::min({t.a.x, t.b.x, t.c.x});
-            //         i32 minY = std::min({t.a.y, t.b.y, t.c.y});
-            //         i32 maxX = std::max({t.a.x, t.b.x, t.c.x});
-            //         i32 maxY = std::max({t.a.y, t.b.y, t.c.y});
-
-            //         static constexpr auto cross = [](Point<i32> const& a, Point<i32> const& b, Point<i32> const& c) {
-            //             return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-            //         };
-            //         static constexpr auto transform = [](Point<i32> const& p, bool flipX, bool flipY) {
-            //             Point<i32> r;
-            //             r.x = flipX ? globalCfg.targetImage.getWidth() - p.x : p.x;
-            //             r.y = flipY ? globalCfg.targetImage.getHeight() - p.y : p.y;
-            //             return r;
-            //         };
-
-            //         static constexpr auto check = [](Triangle const& t, bool flipX, bool flipY) {
-            //             Point<i32> a = transform(t.a, flipX, flipY);
-            //             Point<i32> b = transform(t.b, flipX, flipY);
-            //             Point<i32> c = transform(t.c, flipX, flipY);
-
-            //             i32 halfWidth = (globalCfg.targetImage.getWidth() + 1) / 2;
-            //             i32 halfHeight = (globalCfg.targetImage.getHeight() + 1) / 2;
-
-            //             if (a.x <= halfWidth && a.y <= halfHeight)
-            //                 return true;
-            //             if (b.x <= halfWidth && b.y <= halfHeight)
-            //                 return true;
-            //             if (c.x <= halfWidth && c.y <= halfHeight)
-            //                 return true;
-
-            //             Point minX = a;
-            //             if (b.x < minX.x)
-            //                 minX = b;
-            //             if (c.x < minX.x)
-            //                 minX = c;
-
-            //            Point minY = a; 
-            //            if (b.y < minY.y)
-            //                minY = b;
-            //            if (c.y < minY.y)
-            //                minY = c;
-
-            //            if (minX.y > halfHeight || minY.x > halfWidth)
-            //                return false;
-
-            //            auto C = cross(minX, {halfWidth, halfHeight}, minY);
-            //            return (C <= 0);
-            //         };
-
-            //         amount[0] += check(t, false, false);
-            //         amount[1] += check(t, true, false);
-            //         amount[2] += check(t, false, true);
-            //         amount[3] += check(t, true, true);
-                    
-            //         total++;
-            //     }
-
-            //     i32 largest = std::max({amount[0], amount[1], amount[2], amount[3]});
-            //     double ratio = 100.0 * largest / i.size();
-            //     maxRatio = std::max(maxRatio, ratio);
-            // }
-
-            // std::cout << "Ratio: " << maxRatio << "%\n";
+            // Print normal fitness instead of weighted fitness
+            // Doing this helps to compare individuals with different weights.
+            std::cout << "Best individual: " << bestIndividual.size() << " " <<
+                bestIndividual.getFitness() << " (improvement = " << 100.0 * decrease << "%)\n";
 
             ProfilerStopwatch& sLoop = profiler.getStopwatch("loop");
             auto printTime = [&](std::string_view name, i32 level, double time, bool printPercent = true) {
@@ -184,7 +142,7 @@ int main() {
                     std::cout << "- ";
                 }
 
-                std::cout << name << ": " << 1000 * time / nGen << "ms";
+                std::cout << name << ": " << 1000 * time / globalCfg.logPeriod << "ms";
                 if (printPercent) {
                     std::cout << " (" << 100 * time / sLoop.elapsed() << "%)";
                 }
@@ -204,27 +162,32 @@ int main() {
             }
             printTime("Total", 0, sLoop.elapsed(), false);
 
-            // if (nGen == 1350) {
-            //     std::cout << "Fitness: " << bestIndividual.getFitness() << '\n';
-            //     break;
-            // }
+            if (profiler.getStopwatch("cudaFitness:draw").elapsed() < 1.0/1000) {
+                std::cout << "Warning: drawing took less than 1ms\n";
+                break;
+            }
+
+            for (ProfilerStopwatch& sw : stopwatches) {
+                sw.reset();
+            }
         }
     }
 
     if (!globalCfg.outputFilename)
         return 0;
-    std::ofstream file(globalCfg.outputFilename);
-    if (!file) {
+
+    std::ofstream output(globalCfg.outputFilename);
+    if (!output) {
         std::cerr << "Failed to open file " << globalCfg.outputFilename << '\n';
         return 1;
     }
 
-    json::serialize(file, [&](JSONSerializerState& state) {
-        JSONObjectBuilder obj = state.return_object();
-        obj.add("seed", globalCfg.seed);
-        obj.add("generation", nGen);
-        obj.add("population", pop);
+    json::serialize(output, AppState {
+        .population = pop,
+        .generation = nGen,
+        .seed = globalCfg.seed
     });
+
     return 0;
 }
 

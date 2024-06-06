@@ -4,6 +4,7 @@
 #include "globalConfig.hpp"
 #include <algorithm>
 #include "JSONSerializer/vector_serializer.hpp"
+#include "JSONDeserializer/vector_deserializer.hpp"
 
 GA_NAMESPACE_BEGIN
 
@@ -139,8 +140,12 @@ Individual Individual::crossover(Individual const& other) const {
     return child;
 }
 
-void Individual::serialize(JSONSerializerState& state) const {
-    state.return_value(triangles);
+void serialize(JSONSerializerState& state, Individual const& self) {
+    state.return_value(self.triangles);
+}
+
+void deserialize(JSONDeserializerState& state, Individual& self) {
+    state.consume(self.triangles);
 }
 
 GA_NAMESPACE_END

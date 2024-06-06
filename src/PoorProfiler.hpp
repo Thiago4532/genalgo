@@ -22,6 +22,10 @@ public:
         return parent_ == other;
     }
 
+    void reset() {
+        elapsed_ = 0;
+    }
+
 private:
     void restart() {
         startTime_ = std::chrono::steady_clock::now();
@@ -85,6 +89,10 @@ public:
     }
 
     std::vector<ProfilerStopwatch> const& getStopwatches() const {
+        return stopwatches;
+    }
+
+    std::vector<ProfilerStopwatch>& getStopwatches() {
         return stopwatches;
     }
 private:

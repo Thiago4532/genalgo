@@ -6,7 +6,7 @@
 GA_NAMESPACE_BEGIN
 
 [[noreturn]] static void throw_multiple_returns() {
-    throw json_serialize_exception("Return value already set");
+    throw json_serialize_exception("Multiple returns while serializing JSON");
 }
 
 JSONObjectBuilder::JSONObjectBuilder(std::ostream& os) : os(os) {
@@ -43,42 +43,29 @@ void JSONArrayBuilder::add_separator() {
     }
 }
 
-void JSONSerializerState::return_i32(i32 value) {
+void JSONSerializerState::begin_return() {
     if (has_value)
         throw_multiple_returns();
     has_value = true;
+}
 
+template<std::integral T>
+void JSONSerializerState::return_number(T value) {
+    begin_return();
     os << value;
 }
 
-void JSONSerializerState::return_u32(u32 value) {
-    if (has_value)
-        throw_multiple_returns();
-    has_value = true;
-
-    os << value;
-}
-
-void JSONSerializerState::return_i64(i64 value) {
-    if (has_value)
-        throw_multiple_returns();
-    has_value = true;
-
-    os << value;
-}
-
-void JSONSerializerState::return_u64(u64 value) {
-    if (has_value)
-        throw_multiple_returns();
-    has_value = true;
-
-    os << value;
-}
+template void JSONSerializerState::return_number<i8>(i8 value);
+template void JSONSerializerState::return_number<u8>(u8 value);
+template void JSONSerializerState::return_number<i16>(i16 value);
+template void JSONSerializerState::return_number<u16>(u16 value);
+template void JSONSerializerState::return_number<i32>(i32 value);
+template void JSONSerializerState::return_number<u32>(u32 value);
+template void JSONSerializerState::return_number<i64>(i64 value);
+template void JSONSerializerState::return_number<u64>(u64 value);
 
 void JSONSerializerState::return_string(std::string_view value) {
-    if (has_value)
-        throw_multiple_returns();
-    has_value = true;
+    begin_return();
     
     // TODO: Escape characters
     os << '"' << value << '"';

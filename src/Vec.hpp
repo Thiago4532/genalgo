@@ -171,6 +171,24 @@ GA_CUDA Vec<N, T>& operator/=(Vec<N, T>& lhs, T const& rhs) {
 }
 
 template <i32 N, typename T>
+GA_CUDA bool operator==(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
+    const T* lhs_ = as_array(lhs);
+    const T* rhs_ = as_array(rhs);
+    for (i32 i = 0; i < N; ++i) {
+        if (lhs_[i] != rhs_[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template <i32 N, typename T>
+GA_CUDA bool operator!=(const Vec<N, T>& lhs, const Vec<N, T>& rhs) {
+    return !(lhs == rhs);
+}
+
+template <i32 N, typename T>
 GA_CUDA T norm(const Vec<N, T>& vec) {
     const T* vec_ = as_array(vec);
     T result {0};

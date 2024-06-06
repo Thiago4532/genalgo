@@ -86,10 +86,7 @@ static void eval(Individual& individual, Vec3d dst[], Vec3d src[], i32 width, i3
         // }
     }
 
-    f64 ratio = 1.0;
-    // f64 ratio = (0.01 * individual.size());
-
-    individual.setFitness(ratio * fitness);
+    individual.setFitness(fitness);
 }
 
 void STFitnessEngine::evaluate(std::vector<Individual>& individuals) {

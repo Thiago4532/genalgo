@@ -138,6 +138,12 @@ CudaFitnessEngine::Engine::Engine() {
     }
 
     copyHostToDevice(deviceImage, hostImage, imSize);
+
+    // Limit of shared memory per block is 49152 bytes
+    if (globalCfg.maxTriangles * sizeof(VecTriangle) > 49100) {
+        std::fprintf(stderr, "CudaFitnessEngine: maxTriangles is too large\n");
+        std::abort();
+    }
 }
 
 CudaFitnessEngine::Engine::~Engine() {
@@ -205,6 +211,101 @@ struct GPUDrawData {
     IndividualInfo* info;
 };
 
+#if 1
+
+static __global__
+void drawTriangles(GPUImageInfo image, GPUDrawData data) {
+    i32 width = image.width;
+    i32 height = image.height;
+
+    i32 tileX = blockIdx.x;
+    i32 tileY = blockIdx.y;
+    i32 i = blockIdx.z;
+
+    VecTriangle* triangles;
+    i32 numTriangles;
+
+    triangles = data.triangles + data.info[i].offset;
+    numTriangles = data.info[i].size;
+
+    extern __shared__ OptimizedVecTriangle sharedTriangles[];
+    __shared__ i32 numTrianglesShared;
+
+    for (i32 j = threadIdx.x; j < numTriangles; j += blockDim.x) {
+        VecTriangle const& triangle = triangles[j];
+        sharedTriangles[j].a = triangle.a;
+        sharedTriangles[j].b = triangle.b;
+        sharedTriangles[j].c = triangle.c;
+        sharedTriangles[j].color = fromColor(triangle.color);
+        sharedTriangles[j].alpha = triangle.color.a / 255.0f;
+
+        bool bounds = isTriangleInBounds(triangle, 16 * tileX, 16 * tileY);
+        sharedTriangles[j].use = bounds;
+    }
+
+    constexpr i32 N = 32;
+
+    __shared__ i32 mShared[N];
+    __syncthreads();
+    if (threadIdx.x < N) {
+        i32 id = threadIdx.x;
+
+        i32 ini = id * numTriangles / N;
+        i32 fim = (id + 1) * numTriangles / N;
+        fim = min(fim, numTriangles);
+        OptimizedVecTriangle localTriangles[64];
+
+        i32 m = 0;
+        for (i32 j = ini; j < fim; j++) {
+            OptimizedVecTriangle const& triangle = sharedTriangles[j];
+            if (!triangle.use)
+                continue;
+            localTriangles[m++] = triangle;
+        }
+        mShared[id] = m;
+        __syncwarp();
+        if (threadIdx.x == 0) {
+            for (i32 j = 1; j < N; j++)
+                mShared[j] += mShared[j - 1];
+            numTrianglesShared = mShared[N - 1];
+        }
+        __syncwarp();
+
+        i32 m0 = id == 0 ? 0 : mShared[id - 1];
+        for (i32 j = 0; j < m; j++) {
+            sharedTriangles[m0 + j] = localTriangles[j];
+        }
+    }
+    __syncthreads();
+
+    i32 x = tileX * 16 + threadIdx.x % 16;
+    i32 y = tileY * 16 + threadIdx.x / 16;
+
+    if (x >= width || y >= height)
+        return;
+
+    Vec3f pixel = Vec3f{0.0, 0.0, 0.0};
+
+    for (i32 j = 0; j < numTrianglesShared; ++j) {
+        OptimizedVecTriangle const& t = sharedTriangles[j];
+
+        if (pointInTriangle(Vec2i{x, y}, t.a, t.b, t.c)) {
+            pixel = colorBlend(pixel, t.color, t.alpha);
+        }
+    }
+
+    Vec3f* canvas = image.canvas + i * image.size;
+
+    i32 m = 16;
+    if (tileY == image.height / 16)
+        m = image.height % 16;
+
+    i32 xy = 16 * (tileY * width + m * tileX) + threadIdx.x;
+    canvas[xy] = pixel;
+}
+
+#else
+
 static __global__
 void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     i32 width = image.width;
@@ -231,7 +332,7 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
         sharedTriangles[j].color = fromColor(t.color);
         sharedTriangles[j].alpha = t.color.a / 255.0f;
 
-        bool bounds = isTriangleInBounds(triangles[j], 16 * tileX, 16 * tileY);
+        bool bounds = isTriangleInBounds(t, 16 * tileX, 16 * tileY);
         sharedTriangles[j].use = bounds;
     }
     __syncthreads();
@@ -242,8 +343,10 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
                 continue;
 
             i32 idx = m++;
-            sharedTriangles[idx] = sharedTriangles[j];
+            OptimizedVecTriangle const& triangle = sharedTriangles[j];
+            sharedTriangles[idx] = triangle;
         }
+
         numTrianglesShared = m;
     }
     __syncthreads();
@@ -273,6 +376,8 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     i32 xy = 16 * (tileY * width + m * tileX) + threadIdx.x;
     canvas[xy] = pixel;
 }
+
+#endif
 
 static __global__
 void computeFitnessKernel(
@@ -380,6 +485,7 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
             maxTriangles * sizeof(OptimizedVecTriangle)
         >>>(imageInfo, data);
 
+        CUDA_CHECK(cudaPeekAtLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
     }
     profiler.stop("cudaFitness:draw");
@@ -391,6 +497,7 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     cudaMemset(deviceFitnesses, 0, populationSize * sizeof(*deviceFitnesses));
     computeFitnessKernel<<<BLOCKS, THREADS>>>(
             deviceImage, deviceCanvas, deviceFitnesses, imWidth, imHeight, populationSize);
+    CUDA_CHECK(cudaPeekAtLastError());
     copyDeviceToHost(fitnesses.data(), deviceFitnesses, populationSize);
     cudaDeviceSynchronize();
     profiler.stop("cudaFitness:compute");

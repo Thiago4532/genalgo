@@ -17,6 +17,7 @@ public:
         if (renderRequested)
             return false;
         bestIndividual = best;
+        population = pop;
         renderRequested = true;
         return true;
     }
@@ -28,6 +29,7 @@ private:
     std::atomic<bool> renderRequested;
     std::atomic<bool> renderExited;
     Individual bestIndividual;
+    Population population;
 
     class RendererImpl;
     std::unique_ptr<RendererImpl> impl;
