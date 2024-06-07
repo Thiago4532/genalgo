@@ -17,7 +17,7 @@ add_subdirectory(tsl/)
 add_library(genalgoCuda OBJECT src/CudaGLHelper.cu src/CudaFitnessEngine.cu)
 target_include_directories(genalgoCuda PRIVATE src/)
 target_compile_features(genalgoCuda PUBLIC cxx_std_17)
-set_target_properties(genalgoCuda PROPERTIES CUDA_ARCHITECTURES 75)
+set_target_properties(genalgoCuda PROPERTIES CUDA_ARCHITECTURES native)
 # target_link_libraries(genalgoCuda PRIVATE
 #   tsl
 # )
