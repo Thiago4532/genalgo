@@ -112,6 +112,9 @@ bool Individual::mutate() {
 Individual Individual::crossover(Individual const& other) const {
     static std::uniform_real_distribution<f64> dist(0, 1);
 
+    i32 imWidth = globalCfg.targetImage.getWidth();
+    i32 imHeight = globalCfg.targetImage.getHeight();
+
     Individual child;
     if (std::addressof(*this) == std::addressof(other)) {
         child = *this;
@@ -129,11 +132,25 @@ Individual Individual::crossover(Individual const& other) const {
         i32 sz_l = std::min(size(), (sz + 1) / 2);
         i32 sz_r = sz - sz_l;
 
-        for (i32 i = 0; i < sz_l; i++)
-            child.push_back((*this)[i]);
+        // for (i32 i = 0; i < sz_l; i++)
+        //     child.push_back((*this)[i]);
 
-        for (i32 i = sz_r; i > 0; i--)
-            child.push_back(other[other.size() - i]); 
+        // for (i32 i = sz_r; i > 0; i--)
+        //     child.push_back(other[other.size() - i]); 
+
+        for (Triangle const& t : *this) {
+            i32 minX = std::min({t.a.x, t.b.x, t.c.x});
+            if (minX <= imWidth / 2) {
+                child.push_back(t);
+            }
+        }
+
+        for (Triangle const& t : other) {
+            i32 minX = std::min({t.a.x, t.b.x, t.c.x});
+            if (minX > imWidth / 2) {
+                child.push_back(t);
+            }
+        }
     }
 
     child.mutate();
