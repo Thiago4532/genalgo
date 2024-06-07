@@ -19,25 +19,21 @@
 #include "SignalHandler.hpp"
 #include "Vec.hpp"
 #include "defer.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 #include "Image.hpp"
 #include "Point.hpp"
 #include "globalRNG.hpp"
 
 GA_NAMESPACE_BEGIN
 
-GlobalConfig globalCfg;
-
 static bool setupConfiguration() {
     // Initialization order:
     // 1. globalCfg
     // 2. globalRNG
     // These objects must be initialized before everything else
-
-    if (!globalCfg.targetImage.load("image.png")) {
-        std::cerr << "Failed to load target image\n";
+    if (!globalCfg.setup())
         return false;
-    }
+
 
     globalRNG.seed(globalCfg.seed);
     return true;

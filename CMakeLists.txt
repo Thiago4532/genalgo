@@ -40,6 +40,7 @@ add_executable(genalgo
   src/SignalHandler.cpp
   src/JSONSerializer.cpp
   src/JSONDeserializer.cpp
+  src/GlobalConfig.cpp
 )
 
 target_compile_features(genalgo PRIVATE cxx_std_20)

@@ -1,5 +1,5 @@
 #include "Population.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 #include "globalRNG.hpp"
 #include <algorithm>
 #include <stdexcept>
@@ -60,8 +60,7 @@ Population Population::breed() {
     });
 
     const i32 ELITE = globalCfg.eliteSize;
-    const i32 ELITE_EXTRA = globalCfg.eliteExtraSize;
-    if (individuals.size() < ELITE + ELITE_EXTRA)
+    if (individuals.size() < ELITE)
         throw std::runtime_error("Not enough individuals to breed");
 
     Population nextGen;
@@ -69,12 +68,6 @@ Population Population::breed() {
 
     for (i32 i = 0; i < ELITE; ++i)
         nextGen.individuals.push_back(individuals[i]);
-
-    for(i32 i = 0; i < ELITE_EXTRA; ++i) {
-        Individual copy = individuals[i];
-        copy.mutateRemove();
-        nextGen.individuals.push_back(std::move(copy));
-    }
 
     std::uniform_int_distribution<i32> dist(0, globalCfg.eliteBreedPoolSize - 1);
 

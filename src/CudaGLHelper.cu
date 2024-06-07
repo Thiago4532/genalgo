@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cuda_gl_interop.h>
 #include "Vec.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 #include "defer.hpp"
 #include "PoorProfiler.hpp"
 

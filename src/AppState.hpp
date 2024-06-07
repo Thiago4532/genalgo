@@ -3,7 +3,7 @@
 
 #include "base.hpp"
 #include "Population.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 
 GA_NAMESPACE_BEGIN
 

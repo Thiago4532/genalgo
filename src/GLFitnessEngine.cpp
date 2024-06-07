@@ -8,7 +8,7 @@
 #include "PoorProfiler.hpp"
 #include "Shader.hpp"
 #include "glad/glad.h"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 
 GA_NAMESPACE_BEGIN
 

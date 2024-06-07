@@ -6,7 +6,7 @@
 #include "PoorProfiler.hpp"
 #include "Vec.hpp"
 #include "defer.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 
 static void cudaCheck(cudaError_t error, const char* message) {
     if (error != cudaSuccess) {

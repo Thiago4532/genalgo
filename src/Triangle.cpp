@@ -1,7 +1,7 @@
 #include "Triangle.hpp"
 
 #include "Color.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 #include "globalRNG.hpp"
 #include <type_traits>
 

@@ -1,5 +1,5 @@
 #include "SFMLRenderer.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 
 #include <iostream>
 #include <thread>

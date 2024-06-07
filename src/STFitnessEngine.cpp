@@ -2,7 +2,7 @@
 
 #include "Color.hpp"
 #include "Vec.hpp"
-#include "globalConfig.hpp"
+#include "GlobalConfig.hpp"
 #include "defer.hpp"
 #include <algorithm>
 #include <cmath>
