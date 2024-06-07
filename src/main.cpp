@@ -72,8 +72,8 @@ int main() {
         pop.populate();
     }
 
-    GLFitnessEngine engine;
-    // CudaFitnessEngine engine;
+    // GLFitnessEngine engine;
+    CudaFitnessEngine engine;
     // STFitnessEngine engine;    
     
     // Display the name of the engine
