@@ -19,6 +19,10 @@ bool GlobalConfig::setup() {
     // File to output the population
     // outputFilename = nullptr;
     outputFilename = "outputs/output.json";
+    
+    // File to output the best individual
+    outputSVG = "outputs/best.svg";
+    svgScale = 16;
 
     // Number of individuals in the population
     populationSize = 100;

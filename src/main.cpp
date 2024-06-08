@@ -34,7 +34,6 @@ static bool setupConfiguration() {
     if (!globalCfg.setup())
         return false;
 
-
     globalRNG.seed(globalCfg.seed);
     return true;
 }
@@ -57,6 +56,10 @@ int main() {
         };
 
         json::deserialize(input, state);
+        if (state.size.x != globalCfg.targetImage.getWidth() || state.size.y != globalCfg.targetImage.getHeight()) {
+            std::cerr << "Error while loading state: Target image size mismatch\n";
+            return 1;
+        }
     } else {
         // globalCfg.seed = 651999619; // gojo satoru: triangles 10 2500 penalty 0.01
         // globalCfg.seed = 789671828; // monalisa: triangles 100 2500 penalty 0.001
@@ -164,21 +167,30 @@ int main() {
         }
     }
 
-    if (!globalCfg.outputFilename)
-        return 0;
-
-    std::ofstream output(globalCfg.outputFilename);
-    if (!output) {
-        std::cerr << "Failed to open file " << globalCfg.outputFilename << '\n';
-        return 1;
+    if (globalCfg.outputFilename) {
+        std::ofstream output(globalCfg.outputFilename);
+        if (!output) {
+            std::cerr << "Failed to open file " << globalCfg.outputFilename << '\n';
+            std::cerr << "Unable to save state!\n";
+        } else {
+            json::serialize(output, AppState {
+                    .population = pop,
+                    .generation = nGen,
+                    .seed = globalCfg.seed,
+                    .size = {globalCfg.targetImage.getWidth(), globalCfg.targetImage.getHeight()}
+                    });
+        }
     }
 
-    json::serialize(output, AppState {
-        .population = pop,
-        .generation = nGen,
-        .seed = globalCfg.seed
-    });
-
+    if (globalCfg.outputSVG) {
+        std::ofstream stream(globalCfg.outputSVG);
+        if (!stream) {
+            std::cerr << "Failed to open file " << globalCfg.outputSVG << '\n';
+            std::cerr << "Unable to save SVG!\n";
+        } else {
+            bestIndividual.toSVG(stream);
+        }
+    }
     return 0;
 }
 

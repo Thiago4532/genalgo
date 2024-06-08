@@ -49,6 +49,8 @@ public:
 
     friend void serialize(JSONSerializerState& state, Individual const& self);
     friend void deserialize(JSONDeserializerState& state, Individual& self);
+
+    void toSVG(std::ostream& os) const;
 private:
     std::vector<Triangle> triangles;
     f64 fitness = 1e18;

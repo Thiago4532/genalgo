@@ -12,12 +12,14 @@ struct GlobalConfig {
     Image targetImage;
 
     // File to continue from
-    // const char* inputFilename;
     const char* inputFilename;
 
     // File to output the population
-    // const char* outputFilename;
     const char* outputFilename;
+
+    // File to output the best individual
+    const char* outputSVG;
+    i32 svgScale;
 
     // Number of individuals in the population
     i32 populationSize;

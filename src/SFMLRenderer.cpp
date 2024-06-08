@@ -24,6 +24,7 @@ private:
     // Render thread only
     sf::RenderTexture renderTexture;
     i32 index = -1;
+    float scale;
 };
 
 SFMLRenderer::RendererImpl::RendererImpl(SFMLRenderer& self)
@@ -31,6 +32,15 @@ SFMLRenderer::RendererImpl::RendererImpl(SFMLRenderer& self)
       flagExit(false)
 {
     renderThread = std::thread(&RendererImpl::renderLoop, this);
+
+    if (globalCfg.renderScale == 0)
+        scale = 1.0;
+    else if (globalCfg.renderScale > 0)
+        scale = globalCfg.renderScale;
+    else
+        scale = 1.0 / -globalCfg.renderScale;
+
+    scale = globalCfg.renderScale;
 }
 
 SFMLRenderer::RendererImpl::~RendererImpl() {
@@ -41,8 +51,6 @@ SFMLRenderer::RendererImpl::~RendererImpl() {
 void SFMLRenderer::RendererImpl::renderLoop() {
     i32 width = globalCfg.targetImage.getWidth();
     i32 height = globalCfg.targetImage.getHeight();
-
-    i32 scale = globalCfg.renderScale;
 
     sf::RenderWindow window(sf::VideoMode(width * scale, height * scale), "Genetic Algorithm - Best Individual", sf::Style::Default & ~sf::Style::Resize);
     window.setVerticalSyncEnabled(true);
@@ -56,18 +64,32 @@ void SFMLRenderer::RendererImpl::renderLoop() {
     targetTexture.loadFromImage(targetImage);
 
     sf::Sprite sprite(renderTexture.getTexture());
-    // sprite.setScale(
-    //     static_cast<float>(scale),
-    //     static_cast<float>(scale)
-    // );
     sf::Sprite targetSprite(targetTexture);
-    targetSprite.setPosition(width * scale, 0);
-    targetSprite.setScale(
-        static_cast<float>(scale),
-        static_cast<float>(scale)
-    );
+    auto updateTarget = [&]() {
+        targetSprite.setPosition(width * scale, 0);
+        targetSprite.setScale(
+            static_cast<float>(scale),
+            static_cast<float>(scale)
+        );
+    };
+    updateTarget();
 
     bool showOriginal = false;
+    auto updateScale = [&]() {
+        if (globalCfg.renderScale == 0)
+            scale = 1.0;
+        else if (globalCfg.renderScale > 0)
+            scale = globalCfg.renderScale;
+        else
+            scale = 1.0 / -globalCfg.renderScale;
+        
+        window.setSize(sf::Vector2u(width * scale * (showOriginal ? 2 : 1), height * scale));
+        renderTexture.create(width * scale, height * scale);
+        sprite.~Sprite();
+        new (&sprite) sf::Sprite(renderTexture.getTexture());
+        updateTarget();
+        update();
+    };
 
     while (window.isOpen()) {
         if (flagExit.load(std::memory_order_relaxed)) {
@@ -103,6 +125,16 @@ void SFMLRenderer::RendererImpl::renderLoop() {
                         index = globalCfg.populationSize - 1;
                     window.setTitle("Genetic Algorithm - Individual #" + std::to_string(index));
                     update();
+                } else if (event.key.code == sf::Keyboard::Up) {
+                    globalCfg.renderScale++;
+                    if (globalCfg.renderScale == 0 || globalCfg.renderScale == -1)
+                        globalCfg.renderScale = 1;
+                    updateScale();
+                } else if (event.key.code == sf::Keyboard::Down) {
+                    globalCfg.renderScale--;
+                    if (globalCfg.renderScale == 0 || globalCfg.renderScale == -1)
+                        globalCfg.renderScale = -2;
+                    updateScale();
                 }
             }
         }
@@ -132,7 +164,7 @@ void SFMLRenderer::RendererImpl::update() {
 
     sf::VertexArray vA(sf::Triangles, individual.size() * 3);
 
-    float scale = globalCfg.renderScale;
+    float scale = this->scale;
     for (Triangle const& t : individual) {
         sf::Color color(t.color.r, t.color.g, t.color.b, t.color.a);
         vA.append(sf::Vertex(scale * sf::Vector2f(t.a.x, height - t.a.y), color));

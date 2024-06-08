@@ -5,6 +5,9 @@
 #include <algorithm>
 #include "JSONSerializer/vector_serializer.hpp"
 #include "JSONDeserializer/vector_deserializer.hpp"
+#include <iomanip>
+#include <ostream>
+#include <format>
 
 GA_NAMESPACE_BEGIN
 
@@ -163,6 +166,34 @@ void serialize(JSONSerializerState& state, Individual const& self) {
 
 void deserialize(JSONDeserializerState& state, Individual& self) {
     state.consume(self.triangles);
+}
+
+void Individual::toSVG(std::ostream& os) const {
+    os << std::fixed << std::setprecision(4);
+
+    i32 width = globalCfg.targetImage.getWidth();
+    i32 height = globalCfg.targetImage.getHeight();
+    i32 scaledWidth = width * globalCfg.svgScale;
+    i32 scaledHeight = height * globalCfg.svgScale;
+
+    os << "<svg xmlns=\"http://www.w3.org/2000/svg\" " <<
+          "style=\"background-color: #000;\" " <<
+          "width=\"" << scaledWidth << "\" height=\"" << scaledHeight << "\" " <<
+          "viewBox=\"0 0 " << width << " " << height << "\">\n";
+
+    for (Triangle const& t : triangles) {
+        i32 r = t.color.r;
+        i32 g = t.color.g;
+        i32 b = t.color.b;
+        f64 alpha = t.color.a / 255.0;
+        os << "  <polygon points=\"";
+        os << t.a.x << "," << t.a.y << " ";
+        os << t.b.x << "," << t.b.y << " ";
+        os << t.c.x << "," << t.c.y << "\" ";
+        os << "fill=\"rgba(" << r << "," << g << "," << b << "," << alpha << ")\" ";
+        os << "/>\n";
+    }
+    os << "</svg>";
 }
 
 GA_NAMESPACE_END
