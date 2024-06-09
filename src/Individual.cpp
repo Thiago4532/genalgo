@@ -7,7 +7,6 @@
 #include "JSONDeserializer/vector_deserializer.hpp"
 #include <iomanip>
 #include <ostream>
-#include <format>
 
 GA_NAMESPACE_BEGIN
 

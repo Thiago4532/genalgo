@@ -61,10 +61,10 @@ int main() {
             return 1;
         }
     } else {
-        // globalCfg.seed = 651999619; // gojo satoru: triangles 10 2500 penalty 0.01
+        globalCfg.seed = 651999619; // gojo satoru: triangles 10 2500 penalty 0.01
         // globalCfg.seed = 789671828; // monalisa: triangles 100 2500 penalty 0.001
         // globalCfg.seed = 142254205;
-        globalCfg.seed = std::random_device{}();
+        // globalCfg.seed = std::random_device{}();
         // globalCfg.seed = 2798142837;
     
         nGen = 1;
@@ -164,6 +164,9 @@ int main() {
             for (ProfilerStopwatch& sw : stopwatches) {
                 sw.reset();
             }
+
+            // if (nGen == 1000)
+            //     break;
         }
     }
 

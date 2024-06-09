@@ -105,6 +105,7 @@ void STFitnessEngine::evaluate(std::vector<Individual>& individuals) {
     for (Individual& i : individuals) {
         eval(i, dst, src, width, height);
     }
+    computeWeightedFitness(individuals, penalty_tag::linear);
 }
 
 GA_NAMESPACE_END

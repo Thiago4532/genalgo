@@ -42,13 +42,6 @@ void Population::populate() {
 
 void Population::evaluate(FitnessEngine& engine) {
     engine.evaluate(individuals);
-    i32 size = globalCfg.targetImage.getWidth() * globalCfg.targetImage.getHeight();
-    for (Individual& i : individuals) {
-        auto fitness = i.getFitness();
-        fitness *= (1.0 + i.size() * globalCfg.penalty);
-        // fitness += i.size() * (size * globalCfg.penalty);
-        i.setWeightedFitness(fitness);
-    }
 }
 
 // TODO: Make this const again

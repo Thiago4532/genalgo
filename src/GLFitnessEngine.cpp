@@ -160,7 +160,7 @@ void GLFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     if (individuals.size() != globalCfg.populationSize)
         throw std::runtime_error("Invalid population size");
 
-    profiler.start("OpenGL");
+    profiler.start("gl:draw", "OpenGL");
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     individualsBuffer.clear();
@@ -198,16 +198,17 @@ void GLFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     // Performance penalty, but helps profiling.
     glFinish();
 
-    profiler.stop("OpenGL");
-    profiler.start("Cuda");
+    profiler.stop("gl:draw");
+    profiler.start("gl:cuda", "Cuda");
 
     // Compute fitness now
     std::vector<f64> fitness(globalCfg.populationSize);
     cudaGLHelper.computeFitness(fitness);
     for (i32 i = 0; i < individuals.size(); ++i)
         individuals[i].setFitness(fitness[i]);
+    computeWeightedFitness(individuals, penalty_tag::linear);
 
-    profiler.stop("Cuda");
+    profiler.stop("gl:cuda");
 }
 
 // Wrapper for the actual implementation of the engine

@@ -22,14 +22,14 @@ GA_NAMESPACE_BEGIN
 constexpr i32 THREADS_PER_INDIVIDUAL = 32;
 
 struct VecTriangle {
-    Vec2i a, b, c;
+    Vec2f a, b, c;
     Color color;
 };
 static_assert(sizeof(VecTriangle) == sizeof(Triangle) &&
         alignof(VecTriangle) == alignof(Triangle), "VecTriangle is not layout-compatible with Triangle");
 
 struct OptimizedVecTriangle {
-    Vec2i a, b, c;
+    Vec2f a, b, c;
     Vec3f color;
     f32 alpha;
     bool use;
@@ -156,8 +156,8 @@ CudaFitnessEngine::Engine::~Engine() {
 }
 
 inline static __device__
-bool pointInTriangle(Vec2i p, Vec2i a, Vec2i b, Vec2i c) {
-    auto sign = [](Vec2i p1, Vec2i p2, Vec2i p3) {
+bool pointInTriangle(Vec2f p, Vec2f a, Vec2f b, Vec2f c) {
+    auto sign = [](Vec2f p1, Vec2f p2, Vec2f p3) {
         return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
     };
 
@@ -167,6 +167,11 @@ bool pointInTriangle(Vec2i p, Vec2i a, Vec2i b, Vec2i c) {
     b3 = sign(p, c, a) < 0;
 
     return ((b1 == b2) && (b2 == b3));
+}
+
+inline static __device__
+bool pointInBox(Vec2f p, Vec2f a, Vec2f b) {
+    return p.x >= a.x && p.x <= b.x && p.y >= a.y && p.y <= b.y;
 }
 
 // inline static __device__
@@ -181,15 +186,15 @@ Vec3f colorBlend(Vec3f dst, Vec3f src, f32 alpha) {
     return dst * (1.0f - alpha) + src * alpha;
 }
 
-inline static __device__
-bool isTriangleInBounds(VecTriangle const& t, i32 x, i32 y) {
-    i32 x2 = x + 16;
-    i32 y2 = y + 16;
+[[maybe_unused]] inline static __device__
+bool isTriangleInBounds0(VecTriangle const& t, f32 x, f32 y) {
+    f32 x2 = x + 16;
+    f32 y2 = y + 16;
 
-    i32 minX = min(t.a.x, min(t.b.x, t.c.x));
-    i32 minY = min(t.a.y, min(t.b.y, t.c.y));
-    i32 maxX = max(t.a.x, max(t.b.x, t.c.x));
-    i32 maxY = max(t.a.y, max(t.b.y, t.c.y));
+    f32 minX = min(t.a.x, min(t.b.x, t.c.x));
+    f32 minY = min(t.a.y, min(t.b.y, t.c.y));
+    f32 maxX = max(t.a.x, max(t.b.x, t.c.x));
+    f32 maxY = max(t.a.y, max(t.b.y, t.c.y));
 
     bool bad = false;
     bad |= (minX >= x2);
@@ -198,6 +203,80 @@ bool isTriangleInBounds(VecTriangle const& t, i32 x, i32 y) {
     bad |= (maxY < y);
 
     return !bad;
+}
+
+inline static __device__
+bool doesSegmentIntersect(Vec2f a, Vec2f b, Vec2f c, Vec2f d) {
+    auto cross = [](Vec2f v, Vec2f w) {
+        return v.x * w.y - v.y * w.x;
+    };
+
+    auto isBetween = [](float a, float b, float c) {
+        return fmin(a, b) <= c && c <= fmax(a, b);
+    };
+
+    Vec2f ab = {b.x - a.x, b.y - a.y};
+    Vec2f ac = {c.x - a.x, c.y - a.y};
+    Vec2f ad = {d.x - a.x, d.y - a.y};
+    Vec2f cd = {d.x - c.x, d.y - c.y};
+    Vec2f ca = {a.x - c.x, a.y - c.y};
+    Vec2f cb = {b.x - c.x, b.y - c.y};
+
+    float cross1 = cross(ab, ac);
+    float cross2 = cross(ab, ad);
+    float cross3 = cross(cd, ca);
+    float cross4 = cross(cd, cb);
+
+    // Check for intersection using cross products
+    bool intersect = (cross1 * cross2 < 0) && (cross3 * cross4 < 0);
+
+    // Check for collinear cases
+    bool collinear1 = (cross1 == 0) && isBetween(a.x, b.x, c.x) && isBetween(a.y, b.y, c.y);
+    bool collinear2 = (cross2 == 0) && isBetween(a.x, b.x, d.x) && isBetween(a.y, b.y, d.y);
+    bool collinear3 = (cross3 == 0) && isBetween(c.x, d.x, a.x) && isBetween(c.y, d.y, a.y);
+    bool collinear4 = (cross4 == 0) && isBetween(c.x, d.x, b.x) && isBetween(c.y, d.y, b.y);
+
+    return intersect || collinear1 || collinear2 || collinear3 || collinear4;
+}
+
+inline static __device__
+bool isTriangleInBounds(VecTriangle const& t, f32 x, f32 y) {
+    f32 x2 = x + 16;
+    f32 y2 = y + 16;
+
+    Vec2f a {x, y};
+    Vec2f b {x2, y};
+    Vec2f c {x, y2};
+    Vec2f d {x2, y2};
+
+    if (pointInTriangle(a, t.a, t.b, t.c))
+        return true;
+
+    if (pointInBox(t.a, a, d))
+        return true;
+
+    Vec2f triangleSegments[3][2] = {
+        {t.a, t.b},
+        {t.b, t.c},
+        {t.c, t.a}
+    };
+
+    Vec2f boxSegments[4][2] = {
+        {a, b},
+        {b, d},
+        {d, c},
+        {c, a}
+    };
+
+    for (i32 i = 0; i < 3; ++i) {
+        for (i32 j = 0; j < 4; ++j) {
+            if (doesSegmentIntersect(triangleSegments[i][0], triangleSegments[i][1],
+                                     boxSegments[j][0], boxSegments[j][1]))
+                return true;
+        }
+    }
+
+    return false;
 }
 
 struct GPUImageInfo {
@@ -210,8 +289,6 @@ struct GPUDrawData {
     VecTriangle* triangles;
     IndividualInfo* info;
 };
-
-#if 1
 
 static __global__
 void drawTriangles(GPUImageInfo image, GPUDrawData data) {
@@ -231,6 +308,9 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     extern __shared__ OptimizedVecTriangle sharedTriangles[];
     __shared__ i32 numTrianglesShared;
 
+    f32 tX = 16 * tileX;
+    f32 tY = 16 * tileY;
+
     for (i32 j = threadIdx.x; j < numTriangles; j += blockDim.x) {
         VecTriangle const& triangle = triangles[j];
         sharedTriangles[j].a = triangle.a;
@@ -239,7 +319,7 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
         sharedTriangles[j].color = fromColor(triangle.color);
         sharedTriangles[j].alpha = triangle.color.a / 255.0f;
 
-        bool bounds = isTriangleInBounds(triangle, 16 * tileX, 16 * tileY);
+        bool bounds = isTriangleInBounds(triangle, tX, tY);
         sharedTriangles[j].use = bounds;
     }
 
@@ -284,12 +364,13 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     if (x >= width || y >= height)
         return;
 
+    Vec2f p = Vec2f{(f32)x, (f32)y};
     Vec3f pixel = Vec3f{0.0, 0.0, 0.0};
 
     for (i32 j = 0; j < numTrianglesShared; ++j) {
         OptimizedVecTriangle const& t = sharedTriangles[j];
 
-        if (pointInTriangle(Vec2i{x, y}, t.a, t.b, t.c)) {
+        if (pointInTriangle(p, t.a, t.b, t.c)) {
             pixel = colorBlend(pixel, t.color, t.alpha);
         }
     }
@@ -303,81 +384,6 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     i32 xy = 16 * (tileY * width + m * tileX) + threadIdx.x;
     canvas[xy] = pixel;
 }
-
-#else
-
-static __global__
-void drawTriangles(GPUImageInfo image, GPUDrawData data) {
-    i32 width = image.width;
-    i32 height = image.height;
-
-    i32 tileX = blockIdx.x;
-    i32 tileY = blockIdx.y;
-    i32 i = blockIdx.z;
-
-    VecTriangle* triangles;
-    i32 numTriangles;
-
-    triangles = data.triangles + data.info[i].offset;
-    numTriangles = data.info[i].size;
-
-    extern __shared__ OptimizedVecTriangle sharedTriangles[];
-    __shared__ i32 numTrianglesShared;
-
-    for (i32 j = threadIdx.x; j < numTriangles; j += blockDim.x) {
-        VecTriangle const& t = triangles[j];
-        sharedTriangles[j].a = t.a;
-        sharedTriangles[j].b = t.b;
-        sharedTriangles[j].c = t.c;
-        sharedTriangles[j].color = fromColor(t.color);
-        sharedTriangles[j].alpha = t.color.a / 255.0f;
-
-        bool bounds = isTriangleInBounds(t, 16 * tileX, 16 * tileY);
-        sharedTriangles[j].use = bounds;
-    }
-    __syncthreads();
-    if (threadIdx.x == 0) {
-        i32 m = 0;
-        for (i32 j = 0; j < numTriangles; j++) {
-            if (!sharedTriangles[j].use)
-                continue;
-
-            i32 idx = m++;
-            OptimizedVecTriangle const& triangle = sharedTriangles[j];
-            sharedTriangles[idx] = triangle;
-        }
-
-        numTrianglesShared = m;
-    }
-    __syncthreads();
-
-    i32 x = tileX * 16 + threadIdx.x % 16;
-    i32 y = tileY * 16 + threadIdx.x / 16;
-
-    if (x >= width || y >= height)
-        return;
-
-    Vec3f pixel = Vec3f{0.0, 0.0, 0.0};
-
-    for (i32 j = 0; j < numTrianglesShared; ++j) {
-        OptimizedVecTriangle const& t = sharedTriangles[j];
-
-        if (pointInTriangle(Vec2i{x, y}, t.a, t.b, t.c)) {
-            pixel = colorBlend(pixel, t.color, t.alpha);
-        }
-    }
-
-    Vec3f* canvas = image.canvas + i * image.size;
-
-    i32 m = 16;
-    if (tileY == image.height / 16)
-        m = image.height % 16;
-
-    i32 xy = 16 * (tileY * width + m * tileX) + threadIdx.x;
-    canvas[xy] = pixel;
-}
-
-#endif
 
 static __global__
 void computeFitnessKernel(
@@ -432,9 +438,9 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
         hostIndividualInfo[i].offset = triangles.size();
         for (Triangle const& t : ind) {
             VecTriangle vt;
-            vt.a = Vec2i(t.a.x, t.a.y);
-            vt.b = Vec2i(t.b.x, t.b.y);
-            vt.c = Vec2i(t.c.x, t.c.y);
+            vt.a = Vec2f(t.a.x, t.a.y);
+            vt.b = Vec2f(t.b.x, t.b.y);
+            vt.c = Vec2f(t.c.x, t.c.y);
             vt.color = t.color;
 
             triangles.push_back(vt);
@@ -506,8 +512,8 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     for (i32 i = 0; i < populationSize; ++i) {
         individuals[i].setFitness(fitnesses[i]);
     }
+    computeWeightedFitness(individuals, penalty_tag::linear);
     profiler.stop("cudaFitness:copy2individuals");
-
 
     profiler.start("cudaFitness:cleanup", "Cleanup");
 }

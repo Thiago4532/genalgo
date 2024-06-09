@@ -35,6 +35,7 @@ add_executable(genalgo
   src/Triangle.cpp
   src/Individual.cpp
   src/Population.cpp
+  src/FitnessEngine.cpp
   src/STFitnessEngine.cpp
   src/GLFitnessEngine.cpp
   src/SFMLRenderer.cpp
