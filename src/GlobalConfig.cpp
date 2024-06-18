@@ -13,7 +13,7 @@ bool GlobalConfig::setup() {
 
     // File to continue from
     inputFilename = nullptr;
-    inputFilename = "outputs/fodase1.json";
+    //inputFilename = "outputs/fodase1.json";
 
     // File to output the population
     outputFilename = nullptr;
@@ -55,10 +55,10 @@ bool GlobalConfig::setup() {
 
     // Renderer parameters
     renderScale = 2;
-    renderPeriod = 50; // Number of generations between renders
+    renderPeriod = 5; // Number of generations between renders
     
     // Number of generations between logging
-    logPeriod = 50;
+    logPeriod = 5;
 
     // Seed for the random number generator
     seed = 0x42424242;

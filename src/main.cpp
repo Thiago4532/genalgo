@@ -12,6 +12,7 @@
 #include "Individual.hpp"
 #include "JSONDeserializer.hpp"
 #include "JSONSerializer.hpp"
+#include "MTFitnessEngine.hpp"
 #include "PoorProfiler.hpp"
 #include "Population.hpp"
 #include "SFMLRenderer.hpp"
@@ -74,7 +75,8 @@ int main() {
 
     // GLFitnessEngine engine;
     CudaFitnessEngine engine;
-    // STFitnessEngine engine;    
+    // STFitnessEngine engine;   
+    // MTFitnessEngine engine;
     
     // Display the name of the engine
     const char* engineName = engine.getEngineName();

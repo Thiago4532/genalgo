@@ -9,6 +9,7 @@ endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_package(SFML 2.6 COMPONENTS window system graphics REQUIRED)
+find_package(OpenMP REQUIRED)
 # find_package(glfw3 3.3 REQUIRED)
 
 add_subdirectory(glad/)
@@ -21,9 +22,14 @@ set_target_properties(genalgoCuda PROPERTIES CUDA_ARCHITECTURES native)
 target_compile_options(genalgoCuda PRIVATE
   "-lineinfo"
 )
-# target_link_libraries(genalgoCuda PRIVATE
-#   tsl
-# )
+
+add_library(genalgoMTEngine OBJECT src/MTFitnessEngine.cpp)
+target_include_directories(genalgoMTEngine PRIVATE src/)
+target_compile_features(genalgoMTEngine PUBLIC cxx_std_17)
+target_link_libraries(genalgoMTEngine
+  PRIVATE OpenMP::OpenMP_CXX
+)
+
 
 add_executable(genalgo
   src/main.cpp
@@ -57,6 +63,7 @@ target_link_libraries(genalgo PRIVATE
   tsl
   glad
   genalgoCuda
+  genalgoMTEngine
   # glfw
 )
 
