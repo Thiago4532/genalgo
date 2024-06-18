@@ -2,7 +2,6 @@
 #include <iostream>
 
 GA_NAMESPACE_BEGIN
-
 GlobalConfig globalCfg;
 
 bool GlobalConfig::setup() {
@@ -13,15 +12,15 @@ bool GlobalConfig::setup() {
     }
 
     // File to continue from
-    // inputFilename = nullptr;
-    inputFilename = "outputs/output.json";
+    inputFilename = nullptr;
+    inputFilename = "outputs/fodase1.json";
 
     // File to output the population
-    // outputFilename = nullptr;
-    outputFilename = "outputs/output.json";
+    outputFilename = nullptr;
+    outputFilename = "outputs/fodase1.json";
     
     // File to output the best individual
-    outputSVG = "outputs/best.svg";
+    outputSVG = "outputs/fodase1.svg";
     svgScale = 16;
 
     // Number of individuals in the population
