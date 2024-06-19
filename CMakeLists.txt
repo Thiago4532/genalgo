@@ -13,37 +13,57 @@ find_package(OpenMP REQUIRED)
 
 add_subdirectory(glad/)
 
-add_library(genalgoCuda OBJECT src/CudaGLHelper.cu src/CudaFitnessEngine.cu)
-target_include_directories(genalgoCuda PRIVATE src/)
-target_compile_features(genalgoCuda PUBLIC cxx_std_17)
-set_target_properties(genalgoCuda PROPERTIES CUDA_ARCHITECTURES native)
-target_compile_options(genalgoCuda PRIVATE
+add_library(genalgoIncludes INTERFACE)
+target_compile_features(genalgoIncludes INTERFACE cxx_std_17)
+target_include_directories(genalgoIncludes INTERFACE src/)
+
+add_library(glCudaHelper OBJECT src/CudaGLHelper.cu)
+set_target_properties(glCudaHelper PROPERTIES CUDA_ARCHITECTURES native)
+target_compile_options(glCudaHelper PRIVATE
   "-lineinfo"
 )
+target_link_libraries(glCudaHelper PUBLIC genalgoIncludes)
 
-add_library(genalgoMTEngine OBJECT src/MTFitnessEngine.cpp)
-target_include_directories(genalgoMTEngine PRIVATE src/)
-target_compile_features(genalgoMTEngine PUBLIC cxx_std_17)
-target_link_libraries(genalgoMTEngine
-  PRIVATE OpenMP::OpenMP_CXX
-)
-
-
-add_executable(genalgo
-  src/main.cpp
+add_library(glFitnessEngine OBJECT
+  src/GLFitnessEngine.cpp
   src/Shader.cpp
   src/resource.cpp
   src/GLStateManager.cpp
+  src/DrawableTexture.cpp
+)
+target_include_directories(glFitnessEngine PRIVATE src/)
+target_compile_features(glFitnessEngine PUBLIC cxx_std_17)
+target_link_libraries(glFitnessEngine PUBLIC genalgoIncludes)
+target_link_libraries(glFitnessEngine PRIVATE
+  glad
+  glCudaHelper
+  sfml-window
+)
+
+add_library(cudaFitnessEngine OBJECT src/CudaFitnessEngine.cu)
+set_target_properties(cudaFitnessEngine PROPERTIES CUDA_ARCHITECTURES native)
+target_compile_options(cudaFitnessEngine PRIVATE
+  "-lineinfo"
+)
+target_link_libraries(cudaFitnessEngine
+  PUBLIC genalgoIncludes
+)
+
+add_library(cpuFitnessEngine OBJECT src/STFitnessEngine.cpp src/MTFitnessEngine.cpp)
+target_link_libraries(cpuFitnessEngine
+  PRIVATE OpenMP::OpenMP_CXX
+  PUBLIC genalgoIncludes
+)
+
+add_executable(genalgo
+  src/main.cpp
   src/Image.cpp
   src/globalRNG.cpp
   src/Triangle.cpp
   src/Individual.cpp
   src/Population.cpp
   src/FitnessEngine.cpp
-  src/STFitnessEngine.cpp
-  src/GLFitnessEngine.cpp
   src/SFMLRenderer.cpp
-  src/DrawableTexture.cpp
   src/PoorProfiler.cpp
   src/SignalHandler.cpp
   src/JSONSerializer.cpp
@@ -58,9 +78,9 @@ target_link_libraries(genalgo PRIVATE
   sfml-window
   sfml-system
   sfml-graphics
-  glad
-  genalgoCuda
-  genalgoMTEngine
+  cudaFitnessEngine
+  cpuFitnessEngine
+  genalgoIncludes
   # glfw
 )
 
