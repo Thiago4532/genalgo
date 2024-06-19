@@ -1,6 +1,7 @@
 #include "Image.hpp"
 
 #include <SFML/Graphics.hpp>
+#include <cstring>
 
 GA_NAMESPACE_BEGIN
 
@@ -10,9 +11,9 @@ Image::Image(unsigned int width, unsigned int height): width(width), height(heig
     data = new unsigned char[width * height * 4];
 }
 
-bool Image::load(tsl::cstring_ref filename) {
+bool Image::load(std::string const& filename) {
     sf::Image sfImage;
-    if (!sfImage.loadFromFile(filename.get()))
+    if (!sfImage.loadFromFile(filename))
         return false;
 
     if (data)

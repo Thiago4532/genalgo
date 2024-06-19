@@ -12,7 +12,7 @@ using namespace std;
 GA_NAMESPACE_BEGIN
 
 // TODO: Reimplement this, maybe using memory mapped files
-Shader Shader::fromSource(tsl::cstring_ref vertexPath, tsl::cstring_ref fragmentPath) {
+Shader Shader::fromSource(std::string const& vertexPath, std::string const& fragmentPath) {
     string vertexCode;
     string fragmentCode;
     ifstream vShaderFile;
@@ -21,8 +21,8 @@ Shader Shader::fromSource(tsl::cstring_ref vertexPath, tsl::cstring_ref fragment
     // TODO: Better error handling, the exception is not clear
     vShaderFile.exceptions (ifstream::failbit | ifstream::badbit);
     fShaderFile.exceptions (ifstream::failbit | ifstream::badbit);
-    vShaderFile.open(vertexPath.get());
-    fShaderFile.open(fragmentPath.get());
+    vShaderFile.open(vertexPath.data());
+    fShaderFile.open(fragmentPath.data());
     stringstream vShaderStream, fShaderStream;
 
     vShaderStream << vShaderFile.rdbuf();
@@ -39,13 +39,13 @@ Shader Shader::fromSource(tsl::cstring_ref vertexPath, tsl::cstring_ref fragment
     return Shader(vShaderCode, fShaderCode);
 }
 
-Shader Shader::fromResource(tsl::cstring_ref vertexPath, tsl::cstring_ref fragmentPath) {
-    return fromSource(getResourcePath(vertexPath.get()), getResourcePath(fragmentPath.get()));
+Shader Shader::fromResource(std::string const& vertexPath, std::string const& fragmentPath) {
+    return fromSource(getResourcePath(vertexPath.data()), getResourcePath(fragmentPath.data()));
 }
 
-Shader::Shader(tsl::cstring_ref vShaderCode_, tsl::cstring_ref fShaderCode_) {
-    const char* vShaderCode = vShaderCode_.get();
-    const char* fShaderCode = fShaderCode_.get();
+Shader::Shader(std::string const& vShaderCode_, std::string const& fShaderCode_) {
+    const char* vShaderCode = vShaderCode_.data();
+    const char* fShaderCode = fShaderCode_.data();
 
     u32 vertex, fragment;
     int success;
@@ -112,8 +112,12 @@ void Shader::use() {
     glStateManager.useProgram(shaderId);
 }
 
-ShaderAttr Shader::getAttr(tsl::cstring_ref name) {
-    return ShaderAttr(glGetUniformLocation(shaderId, name.get()));
+ShaderAttr Shader::getAttr(const char* name) {
+    return ShaderAttr(glGetUniformLocation(shaderId, name));
+}
+
+ShaderAttr Shader::getAttr(std::string const& name) {
+    return getAttr(name.data());
 }
 
 void Shader::setFloat(ShaderAttr attr, float value) {

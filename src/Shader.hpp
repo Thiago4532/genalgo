@@ -3,7 +3,6 @@
  
 #include <string>
 #include "base.hpp"
-#include "tsl/cstring_ref.hpp"
 
 GA_NAMESPACE_BEGIN
 
@@ -26,7 +25,7 @@ private:
 class Shader {
 public:  
     Shader(): shaderId(0) { }
-    Shader(tsl::cstring_ref vertexSource, tsl::cstring_ref fragmentSource); 
+    Shader(std::string const& vertexSource, std::string const& fragmentSource); 
     ~Shader();
 
     Shader(const Shader&) = delete;
@@ -35,14 +34,15 @@ public:
     Shader(Shader&& other) noexcept;
     Shader& operator=(Shader&& other) noexcept;
 
-    static Shader fromSource(tsl::cstring_ref vertexPath, tsl::cstring_ref fragmentPath);
-    static Shader fromResource(tsl::cstring_ref vertexPath, tsl::cstring_ref fragmentPath);
+    static Shader fromSource(std::string const& vertexPath, std::string const& fragmentPath);
+    static Shader fromResource(std::string const& vertexPath, std::string const& fragmentPath);
 
     void use();
 
-    ShaderAttr getAttr(tsl::cstring_ref name);
+    ShaderAttr getAttr(std::string const& name);
+    ShaderAttr getAttr(const char* name);
 
-    ShaderAttr operator[](tsl::cstring_ref name) {
+    ShaderAttr operator[](std::string const& name) {
         return getAttr(name);
     }
 
@@ -53,27 +53,27 @@ public:
     void setVec2f(ShaderAttr attr, float x, float y);
     void setVec3f(ShaderAttr attr, float x, float y, float z);
 
-    void setInt(tsl::cstring_ref name, int value) {
+    void setInt(std::string const& name, int value) {
         setInt(getAttr(name), value);
     }
 
-    void setFloat(tsl::cstring_ref name, float value) {
+    void setFloat(std::string const& name, float value) {
         setFloat(getAttr(name), value);
     }
 
-    void setVec2i(tsl::cstring_ref name, int x, int y) {
+    void setVec2i(std::string const& name, int x, int y) {
         setVec2i(getAttr(name), x, y);
     }
 
-    void setVec3i(tsl::cstring_ref name, int x, int y, int z) {
+    void setVec3i(std::string const& name, int x, int y, int z) {
         setVec3i(getAttr(name), x, y, z);
     }
 
-    void setVec2f(tsl::cstring_ref name, float x, float y) {
+    void setVec2f(std::string const& name, float x, float y) {
         setVec2f(getAttr(name), x, y);
     }
 
-    void setVec3f(tsl::cstring_ref name, float x, float y, float z) {
+    void setVec3f(std::string const& name, float x, float y, float z) {
         setVec3f(getAttr(name), x, y, z);
     }
 private:

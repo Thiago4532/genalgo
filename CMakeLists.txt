@@ -10,10 +10,8 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_package(SFML 2.6 COMPONENTS window system graphics REQUIRED)
 find_package(OpenMP REQUIRED)
-# find_package(glfw3 3.3 REQUIRED)
 
 add_subdirectory(glad/)
-add_subdirectory(tsl/)
 
 add_library(genalgoCuda OBJECT src/CudaGLHelper.cu src/CudaFitnessEngine.cu)
 target_include_directories(genalgoCuda PRIVATE src/)
@@ -60,7 +58,6 @@ target_link_libraries(genalgo PRIVATE
   sfml-window
   sfml-system
   sfml-graphics
-  tsl
   glad
   genalgoCuda
   genalgoMTEngine
