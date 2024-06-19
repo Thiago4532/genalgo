@@ -25,8 +25,6 @@ struct VecTriangle {
     Vec2f a, b, c;
     Color color;
 };
-static_assert(sizeof(VecTriangle) == sizeof(Triangle) &&
-        alignof(VecTriangle) == alignof(Triangle), "VecTriangle is not layout-compatible with Triangle");
 
 struct OptimizedVecTriangle {
     Vec2f a, b, c;
@@ -147,9 +145,8 @@ CudaFitnessEngine::Engine::Engine() {
     imSize = imWidth * imHeight;
     canvasSize = static_cast<i64>(imSize) * populationSize;
     if (canvasSize > std::numeric_limits<i32>::max()) {
-        // FIXME: Implement support for 64-bits canvas
         std::fprintf(stderr, "CudaFitnessEngine: canvas size is too large\n");
-        std::fprintf(stderr, "  This is a limitation of the current implementation, for now :)\n");
+        std::fprintf(stderr, "  This is a limitation of the current implementation\n");
         std::abort();
     }
 
@@ -192,11 +189,15 @@ CudaFitnessEngine::Engine::Engine() {
 
     copyHostToDevice(deviceImage, hostImage, imSize);
 
+    // Shared memory is now fixed and doesn't depend on maxTriangles anymore :)
+
     // Limit of shared memory per block is 49152 bytes
-    if (globalCfg.maxTriangles * sizeof(VecTriangle) > 49100) {
-        std::fprintf(stderr, "CudaFitnessEngine: maxTriangles is too large\n");
-        std::abort();
-    }
+    // i32 hardLimitTriangles = 49100 / sizeof(OptimizedVecTriangle);
+    // if (globalCfg.maxTriangles > hardLimitTriangles) {
+    //     std::fprintf(stderr, "CudaFitnessEngine: maxTriangles is too large: %d\n", globalCfg.maxTriangles);
+    //     std::fprintf(stderr, "  The current implementation can only handle %d triangles\n", hardLimitTriangles);
+    //     std::abort();
+    // }
 }
 
 CudaFitnessEngine::Engine::~Engine() {
@@ -343,6 +344,8 @@ struct GPUDrawData {
     IndividualInfo* info;
 };
 
+constexpr i32 MAX_SHARED_TRIANGLES = 256;
+
 static __global__
 void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     i32 width = image.width;
@@ -358,75 +361,84 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     triangles = data.triangles + data.info[i].offset;
     numTriangles = data.info[i].size;
 
-    extern __shared__ OptimizedVecTriangle sharedTriangles[];
+    __shared__ OptimizedVecTriangle sharedTriangles[MAX_SHARED_TRIANGLES];
     __shared__ i32 numTrianglesShared;
 
     f32 tX = 16 * tileX;
     f32 tY = 16 * tileY;
-
-    for (i32 j = threadIdx.x; j < numTriangles; j += blockDim.x) {
-        VecTriangle const& triangle = triangles[j];
-        sharedTriangles[j].a = triangle.a;
-        sharedTriangles[j].b = triangle.b;
-        sharedTriangles[j].c = triangle.c;
-        sharedTriangles[j].color = fromColor(triangle.color);
-        sharedTriangles[j].alpha = triangle.color.a / 255.0f;
-
-        bool bounds = isTriangleInBounds(triangle, tX, tY);
-        sharedTriangles[j].use = bounds;
-    }
-
-    constexpr i32 N = 32;
-
-    __shared__ i32 mShared[N];
-    __syncthreads();
-    if (threadIdx.x < N) {
-        i32 id = threadIdx.x;
-
-        i32 ini = id * numTriangles / N;
-        i32 fim = (id + 1) * numTriangles / N;
-        fim = min(fim, numTriangles);
-        OptimizedVecTriangle localTriangles[64];
-
-        i32 m = 0;
-        for (i32 j = ini; j < fim; j++) {
-            OptimizedVecTriangle const& triangle = sharedTriangles[j];
-            if (!triangle.use)
-                continue;
-            localTriangles[m++] = triangle;
-        }
-        mShared[id] = m;
-        __syncwarp();
-        if (threadIdx.x == 0) {
-            for (i32 j = 1; j < N; j++)
-                mShared[j] += mShared[j - 1];
-            numTrianglesShared = mShared[N - 1];
-        }
-        __syncwarp();
-
-        i32 m0 = id == 0 ? 0 : mShared[id - 1];
-        for (i32 j = 0; j < m; j++) {
-            sharedTriangles[m0 + j] = localTriangles[j];
-        }
-    }
-    __syncthreads();
+    Vec3f pixel = Vec3f{0.0, 0.0, 0.0};
 
     i32 x = tileX * 16 + threadIdx.x % 16;
     i32 y = tileY * 16 + threadIdx.x / 16;
 
-    if (x >= width || y >= height)
-        return;
+    i32 numProcessedTriangles = 0;
+    while (numProcessedTriangles < numTriangles) {
+        i32 numItTriangles = min(numTriangles - numProcessedTriangles, MAX_SHARED_TRIANGLES);
 
-    Vec2f p = Vec2f{(f32)x, (f32)y};
-    Vec3f pixel = Vec3f{0.0, 0.0, 0.0};
+        __syncthreads();
+        for (i32 j = threadIdx.x; j < numItTriangles; j += blockDim.x) {
+            VecTriangle const& triangle = triangles[numProcessedTriangles + j];
+            sharedTriangles[j].a = triangle.a;
+            sharedTriangles[j].b = triangle.b;
+            sharedTriangles[j].c = triangle.c;
+            sharedTriangles[j].color = fromColor(triangle.color);
+            sharedTriangles[j].alpha = triangle.color.a / 255.0f;
 
-    for (i32 j = 0; j < numTrianglesShared; ++j) {
-        OptimizedVecTriangle const& t = sharedTriangles[j];
+            bool bounds = isTriangleInBounds(triangle, tX, tY);
+            sharedTriangles[j].use = bounds;
+        }
+        numProcessedTriangles += numItTriangles;
 
-        if (pointInTriangle(p, t.a, t.b, t.c)) {
-            pixel = colorBlend(pixel, t.color, t.alpha);
+        constexpr i32 N = 32;
+        __shared__ i32 mShared[N];
+
+        __syncthreads();
+        if (threadIdx.x < N) {
+            i32 id = threadIdx.x;
+
+            i32 ini = id * numItTriangles / N;
+            i32 fim = (id + 1) * numItTriangles / N;
+            fim = min(fim, numItTriangles);
+            OptimizedVecTriangle localTriangles[64];
+
+            i32 m = 0;
+            for (i32 j = ini; j < fim; j++) {
+                OptimizedVecTriangle const& triangle = sharedTriangles[j];
+                if (!triangle.use)
+                    continue;
+                localTriangles[m++] = triangle;
+            }
+            mShared[id] = m;
+            __syncwarp();
+            if (threadIdx.x == 0) {
+                for (i32 j = 1; j < N; j++)
+                    mShared[j] += mShared[j - 1];
+                numTrianglesShared = mShared[N - 1];
+            }
+            __syncwarp();
+
+            i32 m0 = id == 0 ? 0 : mShared[id - 1];
+            for (i32 j = 0; j < m; j++) {
+                sharedTriangles[m0 + j] = localTriangles[j];
+            }
+        }
+        __syncthreads();
+
+        if (x < width && y < height) {
+            Vec2f p = Vec2f{x, y};
+
+            for (i32 j = 0; j < numTrianglesShared; ++j) {
+                OptimizedVecTriangle const& t = sharedTriangles[j];
+
+                if (pointInTriangle(p, t.a, t.b, t.c)) {
+                    pixel = colorBlend(pixel, t.color, t.alpha);
+                }
+            }
         }
     }
+
+    if (x >= width || y >= height)
+        return;
 
     Vec3f* canvas = image.canvas + i * image.size;
 
@@ -482,11 +494,6 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
 
     defer { profiler.stop("cudaFitness:cleanup"); };
 
-    // FIXME: Remove this
-    // static i32 generation = 0;
-    // i64 total = 0;
-    // i64 amount_l = 0, amount_r = 0;
-
     profiler.start("cudaFitness:prepare", "Prepare");
     i32 maxTriangles = 0;
     triangles.clear();
@@ -508,13 +515,6 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
         hostIndividualInfo[i].size = ind.size();
     }
     profiler.stop("cudaFitness:prepare");
-
-    // generation++;
-    // total = triangles.size();
-    // if (generation % 10 == 0) {
-    //     double ratio = 100 * (amount_l + amount_r) / (double)total;
-    //     std::fprintf(stderr, "Generation %d: %.2f%%\n", generation, ratio);
-    // }
 
     profiler.start("cudaFitness:copy2device", "Copy");
     auto deviceTriangles = deviceMalloc<VecTriangle>(triangles.size());
@@ -546,9 +546,10 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
             .info = deviceIndividualInfo
         };
 
-        drawTriangles<<<BLOCKS, THREADS,
-            maxTriangles * sizeof(OptimizedVecTriangle)
-        >>>(imageInfo, data);
+        drawTriangles<<<BLOCKS, THREADS>>>(imageInfo, data);
+        // drawTriangles<<<BLOCKS, THREADS,
+        //     maxTriangles * sizeof(OptimizedVecTriangle)
+        // >>>(imageInfo, data);
 
         CUDA_CHECK(cudaPeekAtLastError());
         CUDA_CHECK(cudaDeviceSynchronize());

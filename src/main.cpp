@@ -119,9 +119,9 @@ int main() {
         }
         profiler.stop("render");
 
-        profiler.start("breed", "Breed");
-        pop = pop.breed();
-        profiler.stop("breed");
+        // profiler.start("breed", "Breed");
+        // pop = pop.breed();
+        // profiler.stop("breed");
 
         profiler.stop("loop");
         if (nGen % logPeriod == 0) {

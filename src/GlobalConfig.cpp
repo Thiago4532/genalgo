@@ -13,14 +13,14 @@ bool GlobalConfig::setup() {
 
     // File to continue from
     inputFilename = nullptr;
-    //inputFilename = "outputs/fodase1.json";
+    inputFilename = "outputs/output.json";
 
     // File to output the population
     outputFilename = nullptr;
-    outputFilename = "outputs/fodase1.json";
+    // outputFilename = "outputs/output.json";
     
     // File to output the best individual
-    outputSVG = "outputs/fodase1.svg";
+    outputSVG = "outputs/best.svg";
     svgScale = 16;
 
     // Number of individuals in the population
@@ -55,10 +55,10 @@ bool GlobalConfig::setup() {
 
     // Renderer parameters
     renderScale = 2;
-    renderPeriod = 5; // Number of generations between renders
+    renderPeriod = 50; // Number of generations between renders
     
     // Number of generations between logging
-    logPeriod = 5;
+    logPeriod = 50;
 
     // Seed for the random number generator
     seed = 0x42424242;
