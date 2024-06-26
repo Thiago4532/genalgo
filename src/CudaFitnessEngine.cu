@@ -19,8 +19,6 @@ static void cudaCheck(cudaError_t error, const char* message) {
 
 GA_NAMESPACE_BEGIN
 
-constexpr i32 THREADS_PER_INDIVIDUAL = 32;
-
 struct VecTriangle {
     Vec2f a, b, c;
     Color color;
@@ -479,24 +477,26 @@ void convertRGBToLAB(Vec3f* canvas) {
     canvas[i] = rgb2lab(canvas[i]);
 }
 
+// Number of threads per individual in the computeFitnessKernel
+// It's better if it's a multiple of 32
 static __global__
 void computeFitnessKernel(
         Vec3f* target, Vec3f* canvas_, 
         f64* fitness, i32 imWidth, i32 imHeight, i32 populationSize) {
-    i32 numTasks = imWidth * imHeight;
-    i32 threadId = blockDim.x * blockIdx.x + threadIdx.x;
-    i32 i = threadId / THREADS_PER_INDIVIDUAL;
-    if (i >= populationSize)
-        return;
-    i32 j = threadId % THREADS_PER_INDIVIDUAL;
 
-    f64 fitnessSum = 0.0;
-    i32 task0 = j * (numTasks / THREADS_PER_INDIVIDUAL) + min(j, numTasks % THREADS_PER_INDIVIDUAL);
-    i32 n = numTasks / THREADS_PER_INDIVIDUAL + (j < numTasks % THREADS_PER_INDIVIDUAL);
+    i32 i = blockIdx.x;
+    i32 nThreads = blockDim.x;
+    i32 j = threadIdx.x;
 
     i32 imSize = imWidth * imHeight;
+    i32 numTasks = imSize;
+
+    i32 task0 = j * (numTasks / nThreads) + min(j, numTasks % nThreads);
+    i32 n = numTasks / nThreads + (j < numTasks % nThreads);
+
     Vec3f* canvas = canvas_ + i * imSize;
 
+    f64 fitnessSum = 0.0;
     for (i32 xy = task0; xy < task0 + n; ++xy) {
         Vec3f imgPixel = target[xy];
         Vec3f pixel = canvas[xy];
@@ -508,7 +508,17 @@ void computeFitnessKernel(
         fitnessSum += dx * dx + dy * dy + dz * dz;   
     }
 
-    atomicAdd(&fitness[i], fitnessSum);
+    extern __shared__ f64 fitnessesSums[];
+    fitnessesSums[j] = fitnessSum;
+
+    __syncthreads();
+    if (j < 32) { // Reduction in a single warp (not optimal)
+        f64 totalFitness = 0.0;
+        for (i32 k = 0; k < nThreads; ++k) {
+            totalFitness += fitnessesSums[k];
+        }
+        fitness[i] = totalFitness;
+    }
 }
 
 void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
@@ -605,15 +615,17 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     profiler.stop("cudaFitness:rgb2lab");
 
     profiler.start("cudaFitness:compute", "Compute");
-    i32 N = populationSize * THREADS_PER_INDIVIDUAL;
-    u32 THREADS = 128;
-    u32 BLOCKS = (N + THREADS - 1) / THREADS;
-    cudaMemset(deviceFitnesses, 0, populationSize * sizeof(*deviceFitnesses));
-    computeFitnessKernel<<<BLOCKS, THREADS>>>(
-            deviceImage, deviceCanvas, deviceFitnesses, imWidth, imHeight, populationSize);
-    CUDA_CHECK(cudaPeekAtLastError());
-    copyDeviceToHost(fitnesses.data(), deviceFitnesses, populationSize);
-    cudaDeviceSynchronize();
+    {
+        i32 N = populationSize;
+        u32 THREADS = 32;
+        u32 BLOCKS = N;
+        cudaMemset(deviceFitnesses, 0, populationSize * sizeof(*deviceFitnesses));
+        computeFitnessKernel<<<BLOCKS, THREADS, THREADS * sizeof(f64)>>>(
+                deviceImage, deviceCanvas, deviceFitnesses, imWidth, imHeight, populationSize);
+        CUDA_CHECK(cudaPeekAtLastError());
+        copyDeviceToHost(fitnesses.data(), deviceFitnesses, populationSize);
+        cudaDeviceSynchronize();
+    }
     profiler.stop("cudaFitness:compute");
 
     profiler.start("cudaFitness:copy2individuals", "Copy to individuals");
