@@ -46,7 +46,7 @@ int main() {
     if (globalCfg.inputFilename) {
         std::ifstream input(globalCfg.inputFilename);
         if (!input) {
-            std::cerr << "Failed to open file " << globalCfg.inputFilename << '\n';
+            std::cerr << "genalgo: Failed to open file: " << globalCfg.inputFilename << std::endl;
             return 1;
         }
 
@@ -58,10 +58,12 @@ int main() {
 
         json::deserialize(input, state);
         if (state.size.x != globalCfg.targetImage.getWidth() || state.size.y != globalCfg.targetImage.getHeight()) {
-            std::cerr << "Error while loading state: Target image size mismatch\n";
+            std::cerr << "Error while loading state: Target image size mismatch" << std::endl;
+            std::cerr << "You must use the same image used in the gen-input file" << std::endl;
             return 1;
         }
     } else {
+        nGen = 1;
         pop.populate();
     }
 
@@ -162,9 +164,6 @@ int main() {
             for (ProfilerStopwatch& sw : stopwatches) {
                 sw.reset();
             }
-
-            // if (nGen == 30000)
-            //     break;
         }
     }
 

@@ -25,6 +25,7 @@ static bool print_usage(bool in_help = false) {
     std::fprintf(out, "  P                        Show the previous individual in the population\n");
     std::fprintf(out, "  Up Arrow                 Increase render scale\n");
     std::fprintf(out, "  Down Arrow               Decrease render scale\n");
+    std::fflush(out);
     return false; // To be used in return statements
 }
 
