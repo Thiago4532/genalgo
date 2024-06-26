@@ -6,6 +6,10 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 endif()
 
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES native)
+endif()
+
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 find_package(SFML 2.6 COMPONENTS window system graphics REQUIRED)
@@ -18,7 +22,6 @@ target_compile_features(genalgoIncludes INTERFACE cxx_std_17)
 target_include_directories(genalgoIncludes INTERFACE src/)
 
 add_library(glCudaHelper OBJECT src/CudaGLHelper.cu)
-set_target_properties(glCudaHelper PROPERTIES CUDA_ARCHITECTURES native)
 target_compile_options(glCudaHelper PRIVATE
   "-lineinfo"
 )
@@ -43,7 +46,6 @@ PRIVATE
 )
 
 add_library(cudaFitnessEngine STATIC src/CudaFitnessEngine.cu)
-set_target_properties(cudaFitnessEngine PROPERTIES CUDA_ARCHITECTURES native)
 target_compile_options(cudaFitnessEngine PRIVATE
   "-lineinfo"
 )
