@@ -58,8 +58,8 @@ int main() {
 
         json::deserialize(input, state);
         if (state.size.x != globalCfg.targetImage.getWidth() || state.size.y != globalCfg.targetImage.getHeight()) {
-            std::cerr << "Error while loading state: Target image size mismatch" << std::endl;
-            std::cerr << "You must use the same image used in the gen-input file" << std::endl;
+            std::cerr << "genalgo: Error while loading state: Target image size mismatch" << std::endl;
+            std::cerr << "         You must use the same image used in the gen-input file" << std::endl;
             return 1;
         }
     } else {
@@ -68,9 +68,9 @@ int main() {
     }
 
     // GLFitnessEngine engine;
-    CudaFitnessEngine engine;
+    // CudaFitnessEngine engine;
     // STFitnessEngine engine;   
-    // MTFitnessEngine engine;
+    MTFitnessEngine engine;
     
     // Display the name of the engine
     const char* engineName = engine.getEngineName();
@@ -164,14 +164,16 @@ int main() {
             for (ProfilerStopwatch& sw : stopwatches) {
                 sw.reset();
             }
+
+            std::cout.flush();
         }
     }
 
     if (globalCfg.outputFilename) {
         std::ofstream output(globalCfg.outputFilename);
         if (!output) {
-            std::cerr << "Failed to open file " << globalCfg.outputFilename << '\n';
-            std::cerr << "Unable to save state!\n";
+            std::cerr << "genalgo: Failed to open file " << globalCfg.outputFilename << std::endl;
+            std::cerr << "genalgo: Unable to save state!" << std::endl;
         } else {
             json::serialize(output, AppState {
                     .population = pop,
@@ -185,8 +187,8 @@ int main() {
     if (globalCfg.outputSVG) {
         std::ofstream stream(globalCfg.outputSVG);
         if (!stream) {
-            std::cerr << "Failed to open file " << globalCfg.outputSVG << '\n';
-            std::cerr << "Unable to save SVG!\n";
+            std::cerr << "genalgo: Failed to open file " << globalCfg.outputSVG << std::endl;
+            std::cerr << "         Unable to save SVG!" << std::endl;
         } else {
             bestIndividual.toSVG(stream);
         }
