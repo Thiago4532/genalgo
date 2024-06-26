@@ -15,8 +15,10 @@ static bool print_usage(bool in_help = false) {
     std::fprintf(out, "  -o, --output <svg>       Output SVG file\n");
     std::fprintf(out, "  -gi, --gen-input <file>  Input file to continue from\n");
     std::fprintf(out, "  -go, --gen-output <file> Output file to save the generation\n");
-    std::fprintf(out, "  -s, --seed <seed>        Seed for the random number generator\n");
+    std::fprintf(out, "  -s, --seed <seed>        Seed for the random number generator (default = <platform-specific-random>)\n");
+    std::fprintf(out, "  --period <n>             Number of generations between renders/logging (default = 50)\n");
     std::fprintf(out, "  --no-render              Disable rendering\n");
+    std::fprintf(out, "  --no-breed               Disable breeding\n");
     if (!in_help) return false;
     std::fprintf(out, "Renderer keybindings:\n");
     std::fprintf(out, "  S                        Toggle showing the original image\n");
@@ -59,10 +61,12 @@ bool GlobalConfig::setup(int argc, char* argv[]) {
     inputFilename = nullptr;
     outputFilename = nullptr;
     outputSVG = nullptr;
-    renderDisabled = false;
+    breedDisabled = false;
 
     const char* imageFilename = nullptr;
     bool seedSet = false;
+
+    u32 period = 50;
 
     for (i32 i = 1; i < argc; i++) {
         const char* arg = argv[i];
@@ -101,8 +105,19 @@ bool GlobalConfig::setup(int argc, char* argv[]) {
                 return print_usage();
             }
             seedSet = true;
+        } else if (is_lopt(arg, "period")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing period after --period\n");
+                return print_usage();
+            }
+            if (!to_u32(argv[++i], &period)) {
+                fprintf(stderr, "genalgo: Invalid period, must be a u32 number\n");
+                return print_usage();
+            }
         } else if (is_lopt(arg, "no-render")) {
             renderDisabled = true;
+        } else if (is_lopt(arg, "no-breed")) {
+            breedDisabled = true;
         } else if (is_opt(arg, "h", "help")) {
             return print_usage(true);
         } else {
@@ -123,6 +138,9 @@ bool GlobalConfig::setup(int argc, char* argv[]) {
 
     if (!seedSet)
         seed = std::random_device{}();
+
+    logPeriod = period;
+    renderPeriod = period;
 
     // TODO: No configuration should be hardcoded, maybe load those from a file
     // or from the command line itself.
@@ -165,10 +183,6 @@ void GlobalConfig::loadConstants() {
 
     // Renderer parameters
     renderScale = 1;
-    renderPeriod = 50; // Number of generations between renders
-    
-    // Number of generations between logging
-    logPeriod = 50;
 }
 
 GA_NAMESPACE_END

@@ -68,9 +68,9 @@ int main() {
     }
 
     // GLFitnessEngine engine;
-    // CudaFitnessEngine engine;
+    CudaFitnessEngine engine;
     // STFitnessEngine engine;   
-    MTFitnessEngine engine;
+    // MTFitnessEngine engine;
     
     // Display the name of the engine
     const char* engineName = engine.getEngineName();
@@ -92,7 +92,7 @@ int main() {
     u32 logPeriod = globalCfg.logPeriod;
 
     std::cout << std::fixed << std::setprecision(2);
-    for (; !shouldStop(); ++nGen) {
+    for (i64 cGen = 1; !shouldStop(); ++cGen, ++nGen) {
         profiler.start("loop");
 
         profiler.start("evaluation", engineName);
@@ -110,18 +110,20 @@ int main() {
         }
 
         profiler.start("render", "Render");
-        if (nGen % renderPeriod == 0) {
+        if (renderPeriod && cGen % renderPeriod == 0) {
             if (renderer)
                 renderer->requestRender(nGen, bestIndividual, pop);
         }
         profiler.stop("render");
 
-        profiler.start("breed", "Breed");
-        pop = pop.breed();
-        profiler.stop("breed");
+        if (!globalCfg.breedDisabled) {
+            profiler.start("breed", "Breed");
+            pop = pop.breed();
+            profiler.stop("breed");
+        }
 
         profiler.stop("loop");
-        if (nGen % logPeriod == 0) {
+        if (logPeriod && cGen % logPeriod == 0) {
             std::cout << "Generation " << nGen << '\n';
             std::cout << "Seed " << globalCfg.seed << '\n';
             

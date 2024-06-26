@@ -32,6 +32,8 @@ struct GlobalConfig {
     i32 eliteSize;
     i32 eliteBreedPoolSize;
 
+    bool breedDisabled;
+
     // Mutation parameters
     //   * Probabilities are mutually exclusive, they must sum to <= 1
     f64 mutationChanceAdd;
