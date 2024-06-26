@@ -90,9 +90,9 @@ void MTFitnessEngine::evaluate(std::vector<Individual>& individuals){
     i32 width = globalCfg.targetImage.getWidth();
     i32 height = globalCfg.targetImage.getHeight();
     
-    
-
-    #pragma omp parallel for num_threads(8)
+ 
+    constexpr i32 NUM_THREADS = 16;
+    #pragma omp parallel for num_threads(NUM_THREADS)
     for (i32 i = 0; i < individuals.size(); i++) {
         eval(individuals[i], dst+(i*width*height), src, width, height);
     }

@@ -361,6 +361,7 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     triangles = data.triangles + data.info[i].offset;
     numTriangles = data.info[i].size;
 
+    // __shared__ VecTriangle preSharedTriangles[MAX_SHARED_TRIANGLES];
     __shared__ OptimizedVecTriangle sharedTriangles[MAX_SHARED_TRIANGLES];
     __shared__ i32 numTrianglesShared;
 
@@ -375,9 +376,30 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     while (numProcessedTriangles < numTriangles) {
         i32 numItTriangles = min(numTriangles - numProcessedTriangles, MAX_SHARED_TRIANGLES);
 
+        // I've tried to coalesce the memory load, but for some reason it's slower
+        // __syncthreads();
+        // {
+        //     u32* triangles_ = reinterpret_cast<u32*>(triangles + numProcessedTriangles);
+        //     u32* preSharedTriangles_ = reinterpret_cast<u32*>(preSharedTriangles);
+
+        //     static_assert(sizeof(VecTriangle) % sizeof(u32) == 0);
+        //     i32 numBytes = (numItTriangles * sizeof(VecTriangle)) / sizeof(u32);
+
+        //     for (i32 j = threadIdx.x; j < numBytes; j += blockDim.x) {
+        //         u32 value = triangles_[j];
+        //         preSharedTriangles_[j] = value;
+        //     }
+
+        //     // for (i32 j = threadIdx.x; j < numItTriangles; j += blockDim.x) {
+        //     //     preSharedTriangles[j] = triangles[j];
+        //     // }
+        // }
+
         __syncthreads();
         for (i32 j = threadIdx.x; j < numItTriangles; j += blockDim.x) {
             VecTriangle const& triangle = triangles[numProcessedTriangles + j];
+            // VecTriangle const& triangle = preSharedTriangles[j];
+
             sharedTriangles[j].a = triangle.a;
             sharedTriangles[j].b = triangle.b;
             sharedTriangles[j].c = triangle.c;
@@ -440,7 +462,8 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     if (x >= width || y >= height)
         return;
 
-    Vec3f* canvas = image.canvas + i * image.size;
+    i32 imSize = image.size;
+    Vec3f* canvas = image.canvas + i * imSize;
 
     i32 m = 16;
     if (tileY == image.height / 16)
@@ -458,7 +481,7 @@ void convertRGBToLAB(Vec3f* canvas) {
 
 static __global__
 void computeFitnessKernel(
-        Vec3f* target, Vec3f* canvas, 
+        Vec3f* target, Vec3f* canvas_, 
         f64* fitness, i32 imWidth, i32 imHeight, i32 populationSize) {
     i32 numTasks = imWidth * imHeight;
     i32 threadId = blockDim.x * blockIdx.x + threadIdx.x;
@@ -472,9 +495,11 @@ void computeFitnessKernel(
     i32 n = numTasks / THREADS_PER_INDIVIDUAL + (j < numTasks % THREADS_PER_INDIVIDUAL);
 
     i32 imSize = imWidth * imHeight;
+    Vec3f* canvas = canvas_ + i * imSize;
+
     for (i32 xy = task0; xy < task0 + n; ++xy) {
         Vec3f imgPixel = target[xy];
-        Vec3f pixel = canvas[i * imSize + xy];
+        Vec3f pixel = canvas[xy];
 
         double dx = imgPixel.x - pixel.x;
         double dy = imgPixel.y - pixel.y;
@@ -513,6 +538,17 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
         }
 
         hostIndividualInfo[i].size = ind.size();
+
+        // To ensure 32-bytes alignment
+        while ((sizeof(VecTriangle) * triangles.size()) % 32 != 0) {
+            VecTriangle vt;
+            vt.a = Vec2f(0, 0);
+            vt.b = Vec2f(0, 0);
+            vt.c = Vec2f(0, 0);
+            vt.color = Color{0, 0, 0, 0};
+
+            triangles.push_back(vt);
+        }
     }
     profiler.stop("cudaFitness:prepare");
 

@@ -24,7 +24,7 @@ target_compile_options(glCudaHelper PRIVATE
 )
 target_link_libraries(glCudaHelper PUBLIC genalgoIncludes)
 
-add_library(glFitnessEngine OBJECT
+add_library(glFitnessEngine STATIC
   src/GLFitnessEngine.cpp
   src/Shader.cpp
   src/resource.cpp
@@ -33,14 +33,16 @@ add_library(glFitnessEngine OBJECT
 )
 target_include_directories(glFitnessEngine PRIVATE src/)
 target_compile_features(glFitnessEngine PUBLIC cxx_std_17)
-target_link_libraries(glFitnessEngine PUBLIC genalgoIncludes)
-target_link_libraries(glFitnessEngine PRIVATE
+target_link_libraries(glFitnessEngine
+PUBLIC
+  genalgoIncludes
+PRIVATE
   glad
   glCudaHelper
   sfml-window
 )
 
-add_library(cudaFitnessEngine OBJECT src/CudaFitnessEngine.cu)
+add_library(cudaFitnessEngine STATIC src/CudaFitnessEngine.cu)
 set_target_properties(cudaFitnessEngine PROPERTIES CUDA_ARCHITECTURES native)
 target_compile_options(cudaFitnessEngine PRIVATE
   "-lineinfo"
@@ -49,7 +51,7 @@ target_link_libraries(cudaFitnessEngine
   PUBLIC genalgoIncludes
 )
 
-add_library(cpuFitnessEngine OBJECT src/STFitnessEngine.cpp src/MTFitnessEngine.cpp)
+add_library(cpuFitnessEngine STATIC src/STFitnessEngine.cpp src/MTFitnessEngine.cpp)
 target_link_libraries(cpuFitnessEngine
   PRIVATE OpenMP::OpenMP_CXX
   PUBLIC genalgoIncludes
@@ -74,12 +76,13 @@ add_executable(genalgo
 target_compile_features(genalgo PRIVATE cxx_std_20)
 target_include_directories(genalgo PRIVATE src/)
 
-target_link_libraries(genalgo PRIVATE
+target_link_libraries(genalgo
   sfml-window
   sfml-system
   sfml-graphics
   cudaFitnessEngine
   cpuFitnessEngine
+  glFitnessEngine
   genalgoIncludes
   # glfw
 )
