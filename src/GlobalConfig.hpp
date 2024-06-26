@@ -52,6 +52,7 @@ struct GlobalConfig {
     f64 penalty;
 
     // Renderer parameters
+    bool renderDisabled;
     i32 renderScale;
     u32 renderPeriod; // Number of generations between renders
     
@@ -59,9 +60,10 @@ struct GlobalConfig {
     u32 logPeriod;
 
     // Seed for the random number generator
-    u32 seed;
+    u32 seed; 
 
-    bool setup();
+    bool setup(int argc, char* argv[]);
+    void loadConstants();
 };
 
 extern GlobalConfig globalCfg;

@@ -1,26 +1,135 @@
 #include "GlobalConfig.hpp"
-#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <limits>
+#include <random>
 
 GA_NAMESPACE_BEGIN
 GlobalConfig globalCfg;
 
-bool GlobalConfig::setup() {
-    // Target image 
-    if (!targetImage.load("image.png")) {
-        std::cerr << "Failed to load target image\n";
+static bool print_usage(bool in_help = false) {
+    FILE* out = in_help ? stdout : stderr;
+    std::fprintf(out, "Usage: genalgo -i <image> [options]\n");
+    std::fprintf(out, "Options:\n");
+    std::fprintf(out, "  -i, --input <image>      Input image file\n");
+    std::fprintf(out, "  -o, --output <svg>       Output SVG file\n");
+    std::fprintf(out, "  -gi, --gen-input <file>  Input file to continue from\n");
+    std::fprintf(out, "  -go, --gen-output <file> Output file to save the generation\n");
+    std::fprintf(out, "  -s, --seed <seed>        Seed for the random number generator\n");
+    std::fprintf(out, "  --no-render              Disable rendering\n");
+    if (!in_help) return false;
+    std::fprintf(out, "Renderer keybindings:\n");
+    std::fprintf(out, "  S                        Toggle showing the original image\n");
+    std::fprintf(out, "  R                        Reset to the best individual and update the display\n");
+    std::fprintf(out, "  N                        Show the next individual in the population\n");
+    std::fprintf(out, "  P                        Show the previous individual in the population\n");
+    std::fprintf(out, "  Up Arrow                 Increase render scale\n");
+    std::fprintf(out, "  Down Arrow               Decrease render scale\n");
+    return false; // To be used in return statements
+}
+
+static bool is_lopt(const char* name, const char *lopt) {
+    if (*(name++) != '-') return false;
+    if (*(name++) != '-') return false;
+    return std::strcmp(name, lopt) == 0;
+}
+
+static bool is_opt(const char* name, const char *sopt, const char *lopt) {
+    if (*name != '-') return false;
+    name++;
+    if (*name != '-')
+        return std::strcmp(name, sopt) == 0;
+    name++;
+    return std::strcmp(name, lopt) == 0;
+}
+
+static bool to_u32(const char* str, u32* out) {
+    char* end;
+    u32 val = std::strtoul(str, &end, 10);
+    if (*end != '\0')
+        return false;
+    if (val > std::numeric_limits<u32>::max())
+        return false;
+    *out = val;
+    return true;
+}
+
+bool GlobalConfig::setup(int argc, char* argv[]) {
+    inputFilename = nullptr;
+    outputFilename = nullptr;
+    outputSVG = nullptr;
+    renderDisabled = false;
+
+    const char* imageFilename = nullptr;
+    bool seedSet = false;
+
+    for (i32 i = 1; i < argc; i++) {
+        const char* arg = argv[i];
+
+        if (is_opt(arg, "i", "input")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing filename after -i/--input\n");
+                return print_usage();
+            }
+            imageFilename = argv[++i];
+        } else if (is_opt(arg, "o", "output")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing filename after -o/--output\n");
+                return print_usage();
+            }
+            outputSVG = argv[++i];
+        } else if (is_opt(arg, "gi", "gen-input")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing filename after -gi/--gen-input\n");
+                return print_usage();
+            }
+            inputFilename = argv[++i];
+        } else if (is_opt(arg, "go", "gen-output")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing filename after -go/--gen-output\n");
+                return print_usage();
+            }
+            outputFilename = argv[++i];
+        } else if (is_opt(arg, "s", "seed")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing seed after -s/--seed\n");
+                return print_usage();
+            }
+            if (!to_u32(argv[++i], &seed)) {
+                fprintf(stderr, "genalgo: Invalid seed, must be a u32 number\n");
+                return print_usage();
+            }
+            seedSet = true;
+        } else if (is_lopt(arg, "no-render")) {
+            renderDisabled = true;
+        } else if (is_opt(arg, "h", "help")) {
+            return print_usage(true);
+        } else {
+            fprintf(stderr, "genalgo: Unknown option: %s\n", arg);
+            return print_usage();
+        }
+    }
+
+    if (imageFilename == nullptr) {
+        fprintf(stderr, "genalgo: A image file must be provided\n");
+        return print_usage();
+    }
+
+    if (!targetImage.load(imageFilename)) {
+        std::fprintf(stderr, "genalgo: Failed to load image: %s\n", imageFilename);
         return false;
     }
 
-    // File to continue from
-    inputFilename = nullptr;
-    inputFilename = "outputs/output.json";
+    if (!seedSet)
+        seed = std::random_device{}();
 
-    // File to output the population
-    outputFilename = nullptr;
-    // outputFilename = "outputs/output.json";
-    
-    // File to output the best individual
-    outputSVG = "outputs/best.svg";
+    // TODO: No configuration should be hardcoded, maybe load those from a file
+    // or from the command line itself.
+    loadConstants();
+    return true;
+}
+
+void GlobalConfig::loadConstants() {
     svgScale = 16;
 
     // Number of individuals in the population
@@ -54,16 +163,11 @@ bool GlobalConfig::setup() {
     penalty = 0.00001;
 
     // Renderer parameters
-    renderScale = 2;
+    renderScale = 1;
     renderPeriod = 50; // Number of generations between renders
     
     // Number of generations between logging
     logPeriod = 50;
-
-    // Seed for the random number generator
-    seed = 0x42424242;
-
-    return true;
 }
 
 GA_NAMESPACE_END

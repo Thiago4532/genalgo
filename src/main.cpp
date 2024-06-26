@@ -27,12 +27,12 @@
 
 GA_NAMESPACE_BEGIN
 
-static bool setupConfiguration() {
+static bool setupConfiguration(int argc, char* argv[]) {
     // Initialization order:
     // 1. globalCfg
     // 2. globalRNG
     // These objects must be initialized before everything else
-    if (!globalCfg.setup())
+    if (!globalCfg.setup(argc, argv))
         return false;
 
     globalRNG.seed(globalCfg.seed);
@@ -83,13 +83,15 @@ int main() {
 
     // Renderer must always be done in other thread, since
     // the main thread may use the GPU for computation.
-    SFMLRenderer renderer;
+    SFMLRenderer* renderer = nullptr;
+    if (!globalCfg.renderDisabled)
+        renderer = new SFMLRenderer();
 
     Individual bestIndividual;
     f64 oldBestFitness = 1e9;
     auto shouldStop = [&]() {
         return SignalHandler::interrupted()
-            || renderer.exited();
+            || (renderer ? renderer->exited() : false);
     };
 
     u32 renderPeriod = globalCfg.renderPeriod;
@@ -115,7 +117,8 @@ int main() {
 
         profiler.start("render", "Render");
         if (nGen % renderPeriod == 0) {
-            renderer.requestRender(nGen, bestIndividual, pop);
+            if (renderer)
+                renderer->requestRender(nGen, bestIndividual, pop);
         }
         profiler.stop("render");
 
@@ -205,7 +208,7 @@ GA_NAMESPACE_END
 // Entry point
 int main(int argc, char* argv[]) {
     genalgo::SignalHandler::setup();
-    if (!genalgo::setupConfiguration())
+    if (!genalgo::setupConfiguration(argc, argv))
         return 1;
 
     return genalgo::main();
