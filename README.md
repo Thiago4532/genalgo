@@ -7,6 +7,25 @@ GenAlgo is a genetic algorithm-based image approximation project. This project u
 - SFML 2.6
 - CUDA 12.5
 
+<details>
+<summary>Installing Dependencies</summary>
+
+### Ubuntu
+
+```
+sudo apt update
+sudo apt install libsfml-dev build-essential g++ nvidia-cuda-toolkit
+```
+
+### Arch Linux
+
+```
+sudo pacman -Syu
+sudo pacman -S cmake g++ gcc cuda sfml
+```
+
+</details>
+
 ## Tested Hardware
 
 - NVIDIA RTX 3060 Mobile
