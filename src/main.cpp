@@ -84,12 +84,27 @@ int main() {
         return 1;
     }
 
-    CudaFitnessEngine engine;
-    // STFitnessEngine engine;   
-    // MTFitnessEngine engine;
+    auto engine = []() -> std::unique_ptr<FitnessEngine> {
+        std::string fitnessEngine = globalCfg.fitnessEngine;
+        for (char& c : fitnessEngine)
+            c = std::toupper(c);
+
+        if (fitnessEngine == "CUDA") {
+            return std::make_unique<CudaFitnessEngine>();
+        } else if (fitnessEngine == "MT") {
+            return std::make_unique<MTFitnessEngine>();
+        } else if (fitnessEngine == "ST") {
+            return std::make_unique<STFitnessEngine>();
+        } else {
+            std::cerr << "genalgo: Unknown fitness engine: " << globalCfg.fitnessEngine << std::endl;
+            return nullptr;
+        }
+    }();
+    if (engine == nullptr)
+        return 1;
     
     // Display the name of the engine
-    const char* engineName = engine.getEngineName();
+    const char* engineName = engine->getEngineName();
 
     // Renderer must always be done in other thread, since
     // the main thread may use the GPU for computation.
@@ -112,7 +127,7 @@ int main() {
         profiler.start("loop");
 
         profiler.start("evaluation", engineName);
-        pop.evaluate(engine);
+        pop.evaluate(*engine);
         profiler.stop("evaluation");
 
         for (Individual const& i : pop.getIndividuals()) {

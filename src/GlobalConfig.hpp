@@ -32,6 +32,9 @@ struct GlobalConfig {
     i32 eliteSize;
     i32 eliteBreedPoolSize;
 
+    // Fitness engine
+    const char* fitnessEngine;
+
     bool breedDisabled;
 
     // Mutation parameters

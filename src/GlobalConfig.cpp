@@ -16,6 +16,7 @@ static bool print_usage(bool in_help = false) {
     std::fprintf(out, "  -gi, --gen-input <file>  Input file to continue from\n");
     std::fprintf(out, "  -go, --gen-output <file> Output file to save the generation\n");
     std::fprintf(out, "  -s, --seed <seed>        Seed for the random number generator (default = <platform-specific-random>)\n");
+    std::fprintf(out, "  -e, --engine <engine>    Fitness engine to use (default = CUDA)\n");
     std::fprintf(out, "  --period <n>             Number of generations between renders/logging (default = 50)\n");
     std::fprintf(out, "  --no-render              Disable rendering\n");
     std::fprintf(out, "  --no-breed               Disable breeding\n");
@@ -61,6 +62,7 @@ bool GlobalConfig::setup(int argc, char* argv[]) {
     inputFilename = nullptr;
     outputFilename = nullptr;
     outputSVG = nullptr;
+    fitnessEngine = "CUDA";
     breedDisabled = false;
 
     const char* imageFilename = nullptr;
@@ -105,6 +107,12 @@ bool GlobalConfig::setup(int argc, char* argv[]) {
                 return print_usage();
             }
             seedSet = true;
+        } else if (is_opt(arg, "e", "engine")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing engine after -e/--engine\n");
+                return print_usage();
+            }
+            fitnessEngine = argv[++i];
         } else if (is_lopt(arg, "period")) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "genalgo: Missing period after --period\n");
