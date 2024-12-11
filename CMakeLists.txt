@@ -15,35 +15,9 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 find_package(SFML 2.6 COMPONENTS window system graphics REQUIRED)
 find_package(OpenMP REQUIRED)
 
-add_subdirectory(glad/)
-
 add_library(genalgoIncludes INTERFACE)
 target_compile_features(genalgoIncludes INTERFACE cxx_std_17)
 target_include_directories(genalgoIncludes INTERFACE src/)
-
-add_library(glCudaHelper OBJECT src/CudaGLHelper.cu)
-target_compile_options(glCudaHelper PRIVATE
-  "-lineinfo"
-)
-target_link_libraries(glCudaHelper PUBLIC genalgoIncludes)
-
-add_library(glFitnessEngine STATIC
-  src/GLFitnessEngine.cpp
-  src/Shader.cpp
-  src/resource.cpp
-  src/GLStateManager.cpp
-  src/DrawableTexture.cpp
-)
-target_include_directories(glFitnessEngine PRIVATE src/)
-target_compile_features(glFitnessEngine PUBLIC cxx_std_17)
-target_link_libraries(glFitnessEngine
-PUBLIC
-  genalgoIncludes
-PRIVATE
-  glad
-  glCudaHelper
-  sfml-window
-)
 
 add_library(cudaFitnessEngine STATIC src/CudaFitnessEngine.cu)
 target_compile_options(cudaFitnessEngine PRIVATE
@@ -84,9 +58,7 @@ target_link_libraries(genalgo
   sfml-graphics
   cudaFitnessEngine
   cpuFitnessEngine
-  glFitnessEngine
   genalgoIncludes
-  # glfw
 )
 
 # vim: et ts=8 sts=2 sw=2

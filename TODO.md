@@ -1,1 +1,0 @@
-- Lembrar de checar se o populationSize bate com as configs

@@ -8,7 +8,6 @@
 #include "AppState.hpp"
 #include "CudaFitnessEngine.hpp"
 #include "FitnessEngine.hpp"
-#include "GLFitnessEngine.hpp"
 #include "Individual.hpp"
 #include "JSONDeserializer.hpp"
 #include "JSONSerializer.hpp"
@@ -67,7 +66,6 @@ int main() {
         pop.populate();
     }
 
-    // GLFitnessEngine engine;
     CudaFitnessEngine engine;
     // STFitnessEngine engine;   
     // MTFitnessEngine engine;
