@@ -78,12 +78,7 @@ static void eval(Individual& individual, Vec3d dst[], Vec3d src[], i32 width, i3
         Vec3d diff = dst[i] - src[i];
         Vec3d& pixel = dst[i];
 
-        // fitness += dst[i].x + dst[i].y + dst[i].z;
         fitness += norm(diff);
-
-        // if (pixel.x > 0 && pixel.y > 0 && pixel.z > 0) {
-        //     std::printf("pixel: %f %f %f\n", pixel.x, pixel.y, pixel.z);
-        // }
     }
 
     individual.setFitness(fitness);
