@@ -44,9 +44,15 @@ void Population::evaluate(FitnessEngine& engine) {
     engine.evaluate(individuals);
 }
 
-// TODO: Make this const again
-Population Population::breed() {
-    std::sort(individuals.begin(), individuals.end(), [](Individual& a, Individual& b) {
+Population Population::breed() const {
+    std::vector<i32> idx(individuals.size());
+    for (i32 i = 0; i < individuals.size(); ++i)
+        idx[i] = i;
+
+    std::sort(idx.begin(), idx.end(), [this](i32 i, i32 j) {
+        Individual const& a = individuals[i];
+        Individual const& b = individuals[j];
+
         if (a.getWeightedFitness() == b.getWeightedFitness())
             return a.size() < b.size();
         return a.getWeightedFitness() < b.getWeightedFitness();
@@ -60,7 +66,7 @@ Population Population::breed() {
     nextGen.individuals.reserve(individuals.size());
 
     for (i32 i = 0; i < ELITE; ++i)
-        nextGen.individuals.push_back(individuals[i]);
+        nextGen.individuals.push_back(individuals[idx[i]]);
 
     std::uniform_int_distribution<i32> dist(0, globalCfg.eliteBreedPoolSize - 1);
 
@@ -68,7 +74,7 @@ Population Population::breed() {
         i32 parent1 = dist(globalRNG);
         i32 parent2 = dist(globalRNG);
 
-        Individual child = individuals[parent1].crossover(individuals[parent2]);
+        Individual child = individuals[idx[parent1]].crossover(individuals[idx[parent2]]);
         nextGen.individuals.push_back(child);
     }
 

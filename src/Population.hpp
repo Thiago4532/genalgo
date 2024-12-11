@@ -21,7 +21,7 @@ public:
     std::vector<Individual> const& getIndividuals() const noexcept { return individuals; }
     std::vector<Individual>& getIndividuals() noexcept { return individuals; }
 
-    Population breed();
+    Population breed() const;
 
     friend void serialize(JSONSerializerState& state, const Population& population);
     friend void deserialize(JSONDeserializerState& state, Population& population);
