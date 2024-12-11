@@ -84,7 +84,7 @@ static void eval(Individual& individual, Vec3d dst[], Vec3d src[], i32 width, i3
     individual.setFitness(fitness);
 }
 
-void STFitnessEngine::evaluate(std::vector<Individual>& individuals) {
+void STFitnessEngine::evaluate_impl(std::vector<Individual>& individuals) {
     i32 width = globalCfg.targetImage.getWidth();
     i32 height = globalCfg.targetImage.getHeight();
     Vec3d* src = new Vec3d[width * height];
@@ -100,7 +100,6 @@ void STFitnessEngine::evaluate(std::vector<Individual>& individuals) {
     for (Individual& i : individuals) {
         eval(i, dst, src, width, height);
     }
-    computeWeightedFitness(individuals, penalty_tag::linear);
 }
 
 GA_NAMESPACE_END

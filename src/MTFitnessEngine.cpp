@@ -81,7 +81,7 @@ static void eval(Individual& individual, Vec3d dst[], Vec3d src[], i32 width, i3
     individual.setFitness(fitness);
 }
 
-void MTFitnessEngine::evaluate(std::vector<Individual>& individuals){
+void MTFitnessEngine::evaluate_impl(std::vector<Individual>& individuals){
     if (individuals.size() != globalCfg.populationSize) {
         std::fprintf(stderr, "MTFitnessEngine::evaluate: individuals.size() != populationSize\n");
         std::abort();
@@ -95,8 +95,6 @@ void MTFitnessEngine::evaluate(std::vector<Individual>& individuals){
     for (i32 i = 0; i < individuals.size(); i++) {
         eval(individuals[i], dst+(i*width*height), src, width, height);
     }
-
-    computeWeightedFitness(individuals, penalty_tag::linear);
 }
 
 MTFitnessEngine::MTFitnessEngine(){

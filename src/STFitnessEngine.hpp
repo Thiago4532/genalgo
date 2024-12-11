@@ -16,7 +16,7 @@ public:
         return "STFitnessEngine";
     }
 
-    void evaluate(std::vector<Individual>& individuals) override;
+    void evaluate_impl(std::vector<Individual>& individuals) override;
 };
 
 GA_NAMESPACE_END

@@ -18,4 +18,9 @@ void FitnessEngine::computeWeightedFitness(std::vector<Individual>& individuals,
     }
 }
 
+void FitnessEngine::evaluate(std::vector<Individual>& individuals) {
+    evaluate_impl(individuals);
+    computeWeightedFitness(individuals, penalty_tag::linear);
+}
+
 GA_NAMESPACE_END

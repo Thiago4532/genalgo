@@ -16,7 +16,7 @@ public:
         return "MTFitnessEngine";
     }
 
-    void evaluate(std::vector<Individual>& individuals) override;
+    void evaluate_impl(std::vector<Individual>& individuals) override;
 private:
     Vec3d* src;
     Vec3d* dst;

@@ -562,7 +562,6 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     for (i32 i = 0; i < populationSize; ++i) {
         individuals[i].setFitness(fitnesses[i]);
     }
-    computeWeightedFitness(individuals, penalty_tag::linear);
     profiler.stop("cudaFitness:copy2individuals");
 
     profiler.start("cudaFitness:cleanup", "Cleanup");
@@ -575,7 +574,7 @@ CudaFitnessEngine::CudaFitnessEngine() :
 
 CudaFitnessEngine::~CudaFitnessEngine() = default;
 
-void CudaFitnessEngine::evaluate(std::vector<Individual>& individuals) {
+void CudaFitnessEngine::evaluate_impl(std::vector<Individual>& individuals) {
     impl->evaluate(individuals);
 }
 

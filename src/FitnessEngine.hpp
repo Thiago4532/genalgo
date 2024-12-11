@@ -13,13 +13,15 @@ public:
     virtual ~FitnessEngine() = default;
 
     virtual const char* getEngineName() const noexcept = 0;
-    virtual void evaluate(std::vector<Individual>& individuals) = 0;
 
+    void evaluate(std::vector<Individual>& individuals);
 protected:
     struct penalty_tag {
         static constexpr struct none_t {} none {};
         static constexpr struct linear_t {} linear {};
     };
+
+    virtual void evaluate_impl(std::vector<Individual>& individuals) = 0;
 
     // Since weighted fitness is basically the same for all engines, we can implement
     // some helper functions to avoid code duplication.

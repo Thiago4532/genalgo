@@ -16,7 +16,7 @@ public:
         return "CudaFitnessEngine";
     }
 
-    void evaluate(std::vector<Individual>& individuals) override;
+    void evaluate_impl(std::vector<Individual>& individuals) override;
 private:
     class Engine;
     std::unique_ptr<Engine> impl;
