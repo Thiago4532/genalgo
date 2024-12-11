@@ -78,6 +78,7 @@ private:
     IndividualInfo* deviceIndividualInfo = nullptr;
     Vec3f* deviceCanvas = nullptr;
     Vec3f* deviceImage = nullptr;
+    f64* deviceWeights = nullptr;
 
     i32 imWidth, imHeight, imSize;
     i64 canvasSize;
@@ -104,12 +105,17 @@ CudaFitnessEngine::Engine::Engine() {
     deviceMalloc(&deviceFitnesses, populationSize);
     deviceMalloc(&deviceCanvas, canvasSize);
     deviceMalloc(&deviceImage, imSize);
+    deviceMalloc(&deviceWeights, imSize);
     deviceMalloc(&deviceIndividualInfo, populationSize);
 
     Vec3f* hostImage = new Vec3f[imSize];
     defer { delete[] hostImage; };
 
+    f64* hostWeights = new f64[imSize];
+    defer { delete[] hostWeights; };
+
     Color* target = reinterpret_cast<Color*>(globalCfg.targetImage.getData());
+    f64* weights = globalCfg.targetImage.getWeights();
     i32 j = 0;
 
     for (i32 tileY = 0; tileY < (imHeight + 15)/16; ++tileY) {
@@ -123,7 +129,10 @@ CudaFitnessEngine::Engine::Engine() {
 
                     i32 i = y * imWidth + x;
                     Vec3f rgb = (target[i].a / 255.0f) * fromColor(target[i]);
-                    hostImage[j++] = rgb;
+
+                    hostImage[j] = rgb;
+                    hostWeights[j] = weights[i];
+                    ++j;
                 }
             }
         }
@@ -134,6 +143,7 @@ CudaFitnessEngine::Engine::Engine() {
     }
 
     copyHostToDevice(deviceImage, hostImage, imSize);
+    copyHostToDevice(deviceWeights, hostWeights, imSize);
 
     // Shared memory is now fixed and doesn't depend on maxTriangles anymore :)
 
@@ -151,6 +161,7 @@ CudaFitnessEngine::Engine::~Engine() {
     cudaFree(deviceCanvas);
     cudaFree(deviceImage);
     cudaFree(deviceIndividualInfo);
+    cudaFree(deviceWeights);
 
     free(hostIndividualInfo);
 }
@@ -173,13 +184,6 @@ inline static __device__
 bool pointInBox(Vec2f p, Vec2f a, Vec2f b) {
     return p.x >= a.x && p.x <= b.x && p.y >= a.y && p.y <= b.y;
 }
-
-// inline static __device__
-// Vec3f colorBlend(Vec3f dst, Color src) {
-//     float alpha = src.a / 255.0;
-
-//     return dst * (1.0f - alpha) + fromColor(src) * alpha;
-// }
 
 inline static __device__
 Vec3f colorBlend(Vec3f dst, Vec3f src, f32 alpha) {
@@ -423,7 +427,7 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
 // It's better if it's a multiple of 32
 static __global__
 void computeFitnessKernel(
-        Vec3f* target, Vec3f* canvas_, 
+        Vec3f* target, f64* weights, Vec3f* canvas_, 
         f64* fitness, i32 imWidth, i32 imHeight, i32 populationSize) {
 
     i32 i = blockIdx.x;
@@ -447,7 +451,8 @@ void computeFitnessKernel(
         double dy = imgPixel.y - pixel.y;
         double dz = imgPixel.z - pixel.z;
 
-        fitnessSum += dx * dx + dy * dy + dz * dz;   
+        double sum = dx * dx + dy * dy + dz * dz;
+        fitnessSum += sum * (1.0 + weights[xy]);
     }
 
     extern __shared__ f64 fitnessesSums[];
@@ -551,7 +556,7 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
         u32 BLOCKS = N;
         cudaMemset(deviceFitnesses, 0, populationSize * sizeof(*deviceFitnesses));
         computeFitnessKernel<<<BLOCKS, THREADS, THREADS * sizeof(f64)>>>(
-                deviceImage, deviceCanvas, deviceFitnesses, imWidth, imHeight, populationSize);
+                deviceImage, deviceWeights, deviceCanvas, deviceFitnesses, imWidth, imHeight, populationSize);
         CUDA_CHECK(cudaPeekAtLastError());
         copyDeviceToHost(fitnesses.data(), deviceFitnesses, populationSize);
         cudaDeviceSynchronize();

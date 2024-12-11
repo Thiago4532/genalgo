@@ -20,14 +20,19 @@ public:
     Image(u32 width, u32 height);
     bool load(std::string const& filename);
 
+    void computeWeights();
+
     i32 getWidth() const noexcept { return width; }
     i32 getHeight() const noexcept { return height; }
 
     u8* getData() noexcept { return data; }
+    f64* getWeights() noexcept { return weights; }
 
     ~Image();
 private:
     u8* data;
+    f64* weights;
+
     i32 width;
     i32 height;
 };

@@ -187,7 +187,7 @@ void GlobalConfig::loadConstants() {
     mutationShapeFineRotateChance = 0.20;
 
     // Penalty for each triangle in the individual
-    penalty = 0.00001;
+    penalty = 0.0001;
 
     // Renderer parameters
     renderScale = 1;
