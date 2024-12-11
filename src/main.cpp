@@ -113,7 +113,7 @@ int main() {
         renderer = new SFMLRenderer();
 
     Individual bestIndividual;
-    f64 oldBestFitness = 1e9;
+    f64 oldBestFitness = std::numeric_limits<f64>::max();
     auto shouldStop = [&]() {
         return SignalHandler::interrupted()
             || (renderer ? renderer->exited() : false);
