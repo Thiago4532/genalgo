@@ -63,58 +63,6 @@ Vec3f fromColor(Color c) {
     return Vec3f{1.0f * c.r, 1.0f * c.g, 1.0f * c.b};
 }
 
-inline static __host__ __device__
-Vec3f rgb2xyz(Vec3f src) {
-    Vec3f dst;
-
-    // Convert RGB to XYZ
-    float X = src.r * 0.4124f + src.g * 0.3576f + src.b * 0.1805f;
-    float Y = src.r * 0.2126f + src.g * 0.7152f + src.b * 0.0722f;
-    float Z = src.r * 0.0193f + src.g * 0.1192f + src.b * 0.9505f;
-
-    // Normalize for D65 illuminant
-    dst.x = X / 95.047f;
-    dst.y = Y / 100.0f;
-    dst.z = Z / 108.883f;
-
-    // Apply the transformation
-    auto transform = [](float value) {
-        if (value > 0.008856f) {
-            return powf(value, 1.0f / 3.0f);
-        } else {
-            return (7.787f * value) + (16.0f / 116.0f);
-        }
-    };
-
-    dst.x = transform(dst.x);
-    dst.y = transform(dst.y);
-    dst.z = transform(dst.z);
-
-    return dst;
-}
-
-inline static __host__ __device__
-Vec3f xyz2lab(Vec3f src) {
-    Vec3f dst;
-
-    // Convert XYZ to LAB
-    float L = (116.0f * src.y) - 16.0f;
-    float a = 500.0f * (src.x - src.y);
-    float b = 200.0f * (src.y - src.z);
-
-    dst.x = roundf(L * 10000.0f) / 10000.0f; // rounding to 4 decimal places
-    dst.y = roundf(a * 10000.0f) / 10000.0f; // rounding to 4 decimal places
-    dst.z = roundf(b * 10000.0f) / 10000.0f; // rounding to 4 decimal places
-
-    return dst;
-}
-
-inline static __host__ __device__
-Vec3f rgb2lab(Vec3f src) {
-    // return src;
-    return xyz2lab(rgb2xyz(src));
-}
-
 class CudaFitnessEngine::Engine {
 public:
     Engine();
@@ -175,7 +123,7 @@ CudaFitnessEngine::Engine::Engine() {
 
                     i32 i = y * imWidth + x;
                     Vec3f rgb = (target[i].a / 255.0f) * fromColor(target[i]);
-                    hostImage[j++] = rgb2lab(rgb);
+                    hostImage[j++] = rgb;
                 }
             }
         }
@@ -445,7 +393,7 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
         __syncthreads();
 
         if (x < width && y < height) {
-            Vec2f p = Vec2f{x, y};
+            Vec2f p = Vec2f{static_cast<f32>(x), static_cast<f32>(y)};
 
             for (i32 j = 0; j < numTrianglesShared; ++j) {
                 OptimizedVecTriangle const& t = sharedTriangles[j];
@@ -469,12 +417,6 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
 
     i32 xy = 16 * (tileY * width + m * tileX) + threadIdx.x;
     canvas[xy] = pixel;
-}
-
-static __global__
-void convertRGBToLAB(Vec3f* canvas) {
-    i32 i = blockDim.x * blockIdx.x + threadIdx.x;
-    canvas[i] = rgb2lab(canvas[i]);
 }
 
 // Number of threads per individual in the computeFitnessKernel
@@ -601,18 +543,6 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
         CUDA_CHECK(cudaDeviceSynchronize());
     }
     profiler.stop("cudaFitness:draw");
-
-    profiler.start("cudaFitness:rgb2lab", "RGB-to-LAB");
-    {
-        u32 N = canvasSize;
-        u32 THREADS = 128;
-        u32 BLOCKS = (N + THREADS - 1) / THREADS;
-
-        convertRGBToLAB<<<BLOCKS, THREADS>>>(deviceCanvas);
-        CUDA_CHECK(cudaPeekAtLastError());
-        CUDA_CHECK(cudaDeviceSynchronize());
-    }
-    profiler.stop("cudaFitness:rgb2lab");
 
     profiler.start("cudaFitness:compute", "Compute");
     {
