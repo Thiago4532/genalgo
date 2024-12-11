@@ -1,6 +1,7 @@
 #include <SFML/Graphics/Image.hpp>
 #include <atomic>
 #include <csignal>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -38,32 +39,49 @@ static bool setupConfiguration(int argc, char* argv[]) {
     return true;
 }
 
+static int readState(Population& pop, i64& nGen) {
+    if (!globalCfg.inputFilename)
+        return 0;
+
+    std::ifstream input(globalCfg.inputFilename);
+    if (!input) {
+        if (globalCfg.outputFilename && std::strcmp(globalCfg.inputFilename, globalCfg.outputFilename) == 0) {
+            std::cerr << "genalgo: Warning: Input file does not exist, but continuing anyway..." << std::endl;
+            return 0;
+        }
+        std::cerr << "genalgo: Failed to open file: " << globalCfg.inputFilename << std::endl;
+        return -1;
+    }
+
+    AppState state {
+        .population = pop,
+        .generation = nGen,
+        .seed = globalCfg.seed
+    };
+
+    json::deserialize(input, state);
+    if (state.size.x != globalCfg.targetImage.getWidth() || state.size.y != globalCfg.targetImage.getHeight()) {
+        std::cerr << "genalgo: Error while loading state: Target image size mismatch" << std::endl;
+        std::cerr << "         You must use the same image used in the gen-input file" << std::endl;
+        return -1;
+    }
+
+    return 1;
+}
+
 int main() {
     Population pop;
     i64 nGen;
 
-    if (globalCfg.inputFilename) {
-        std::ifstream input(globalCfg.inputFilename);
-        if (!input) {
-            std::cerr << "genalgo: Failed to open file: " << globalCfg.inputFilename << std::endl;
-            return 1;
-        }
-
-        AppState state {
-            .population = pop,
-            .generation = nGen,
-            .seed = globalCfg.seed
-        };
-
-        json::deserialize(input, state);
-        if (state.size.x != globalCfg.targetImage.getWidth() || state.size.y != globalCfg.targetImage.getHeight()) {
-            std::cerr << "genalgo: Error while loading state: Target image size mismatch" << std::endl;
-            std::cerr << "         You must use the same image used in the gen-input file" << std::endl;
-            return 1;
-        }
-    } else {
+    switch (readState(pop, nGen)) {
+    case 0:
         nGen = 1;
         pop.populate();
+        break;
+    case 1:
+        break; // State loaded successfully
+    case -1:
+        return 1;
     }
 
     CudaFitnessEngine engine;
