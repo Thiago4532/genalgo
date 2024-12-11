@@ -2,6 +2,10 @@
 
 GenAlgo is a genetic algorithm-based image approximation project. This project utilizes semi-transparent triangles to approximate a target image and leverages GPU acceleration with CUDA for efficient computation of the fitness function.
 
+<p align="center">
+  <img alt="Monalisa" src="/examples/monalisa/monalisa_triangles.png">
+</p>
+
 ## Dependencies
 
 - SFML 2.6
