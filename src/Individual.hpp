@@ -20,6 +20,7 @@ public:
     bool mutateRemove();
     bool mutateReplace();
     bool mutateSwap();
+    bool mutateMerge();
     bool mutateShape();
 
     bool mutate();

@@ -43,6 +43,7 @@ struct GlobalConfig {
     f64 mutationChanceRemove;
     f64 mutationChanceReplace;
     f64 mutationChanceSwap;
+    f64 mutationChanceMerge;
     f64 mutationChanceShape;
 
     // Shape-specific mutation parameters 

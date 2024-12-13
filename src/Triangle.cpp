@@ -7,6 +7,10 @@
 
 GA_NAMESPACE_BEGIN
 
+i64 Triangle::area() const {
+    return std::abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y));
+}
+
 static i32 fineAdjust(i32 range) {
     return randomI32(-range, range);
 }
@@ -96,6 +100,17 @@ bool Triangle::mutate() {
     prob -= globalCfg.mutationShapeFineRotateChance;
 
     return mutated;
+}
+
+void Triangle::merge(Triangle const& other) {
+    a = (a + other.a) / 2;
+    b = (b + other.b) / 2;
+    c = (c + other.c) / 2;
+
+    color.r = (color.r + other.color.r) / 2;
+    color.g = (color.g + other.color.g) / 2;
+    color.b = (color.b + other.color.b) / 2;
+    color.a = (color.a + other.color.a) / 2;
 }
 
 void serialize(JSONSerializerState& state, Triangle const& self) {

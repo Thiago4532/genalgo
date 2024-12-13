@@ -16,7 +16,8 @@ static Triangle randomTriangle() {
 
     std::uniform_int_distribution<i32> xDist(0, width - 1);
     std::uniform_int_distribution<i32> yDist(0, height - 1);
-    std::uniform_int_distribution<u8> colorDist;
+    std::uniform_int_distribution<u8> colorDist(0, 255);
+    std::uniform_int_distribution<u8> alphaDist(30, 255);
 
     Triangle t;
     t.a.x = xDist(globalRNG);
@@ -28,7 +29,7 @@ static Triangle randomTriangle() {
     t.color.r = colorDist(globalRNG);
     t.color.g = colorDist(globalRNG);
     t.color.b = colorDist(globalRNG);
-    t.color.a = colorDist(globalRNG);
+    t.color.a = alphaDist(globalRNG);
 
     return t;
 }
@@ -77,6 +78,20 @@ bool Individual::mutateSwap() {
     return true;
 }
 
+bool Individual::mutateMerge() {
+    if (triangles.size() <= 1)
+        return false;
+
+    i32 i = randomI32(0, size() - 1);
+    i32 j = randomI32(0, size() - 2);
+    if (j >= i)
+        j++;
+
+    triangles[i].merge(triangles[j]);
+    triangles.erase(begin() + j);
+    return true;
+}
+
 bool Individual::mutateShape() {
     if (triangles.empty())
         return false;
@@ -103,6 +118,9 @@ bool Individual::mutate() {
     if (prob < globalCfg.mutationChanceSwap)
         return mutateSwap();
     prob -= globalCfg.mutationChanceSwap;
+
+    if (prob < globalCfg.mutationChanceMerge)
+        return mutateMerge();
     
     if (prob < globalCfg.mutationChanceShape)
         return mutateShape();
@@ -139,23 +157,12 @@ Individual Individual::crossover(Individual const& other) const {
 
         for (i32 i = sz_r; i > 0; i--)
             child.push_back(other[other.size() - i]); 
-
-        // for (Triangle const& t : *this) {
-        //     i32 minX = std::min({t.a.x, t.b.x, t.c.x});
-        //     if (minX <= imWidth / 2) {
-        //         child.push_back(t);
-        //     }
-        // }
-
-        // for (Triangle const& t : other) {
-        //     i32 minX = std::min({t.a.x, t.b.x, t.c.x});
-        //     if (minX > imWidth / 2) {
-        //         child.push_back(t);
-        //     }
-        // }
     }
 
     child.mutate();
+    while (dist(globalRNG) < 0.5)
+        child.mutate();
+
     return child;
 }
 

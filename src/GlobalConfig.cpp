@@ -97,6 +97,13 @@ bool GlobalConfig::setup(int argc, char* argv[]) {
                 return print_usage();
             }
             outputFilename = argv[++i];
+        } else if (is_opt(arg, "g", "gen-file")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "genalgo: Missing filename after -g/--gen-file\n");
+                return print_usage();
+            }
+            inputFilename = argv[++i];
+            outputFilename = argv[i];
         } else if (is_opt(arg, "s", "seed")) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "genalgo: Missing seed after -s/--seed\n");
@@ -167,16 +174,17 @@ void GlobalConfig::loadConstants() {
     maxTriangles = 1100; 
 
     // Number of elite individuals
-    eliteSize = 10;
-    eliteBreedPoolSize = eliteSize;
+    eliteSize = 1;
+    eliteBreedPoolSize = 10;
 
     // Mutation parameters
     //   * Probabilities are mutually exclusive, they must sum to <= 1
     mutationChanceAdd = 0.05;
-    mutationChanceRemove = 0.05;
+    mutationChanceRemove = 0.1;
     mutationChanceReplace = 0.05;
     mutationChanceSwap = 0.05;
-    mutationChanceShape = 0.8;
+    mutationChanceMerge = 0.2;
+    mutationChanceShape = 0.55;
 
     // Shape-specific mutation parameters 
     //   * Probabilities are mutually exclusive, they must sum to <= 1
@@ -187,7 +195,7 @@ void GlobalConfig::loadConstants() {
     mutationShapeFineRotateChance = 0.20;
 
     // Penalty for each triangle in the individual
-    penalty = 0.0001;
+    penalty = 0.00001;
 
     // Renderer parameters
     renderScale = 1;

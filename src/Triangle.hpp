@@ -12,6 +12,8 @@ struct Triangle {
     Point<i32> a, b, c;
     Color color;
 
+    i64 area() const;
+
     bool mutateFineColor();
     bool mutateFineMoveX();
     bool mutateFineMoveY();
@@ -19,6 +21,8 @@ struct Triangle {
     bool mutateFineRotate();
 
     bool mutate();
+
+    void merge(Triangle const& other);
 
     friend void serialize(JSONSerializerState& state, Triangle const& self);
     friend void deserialize(JSONDeserializerState& state, Triangle& self);
