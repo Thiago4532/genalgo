@@ -72,7 +72,7 @@ public:
 private:
     std::vector<VecTriangle> triangles;
     std::vector<f64> fitnesses;
-    IndividualInfo* hostIndividualInfo = nullptr;
+    std::unique_ptr<IndividualInfo[]> hostIndividualInfo = nullptr;
 
     f64* deviceFitnesses = nullptr;
     IndividualInfo* deviceIndividualInfo = nullptr;
@@ -100,7 +100,7 @@ CudaFitnessEngine::Engine::Engine() {
     triangles.reserve(populationSize * 100);
     fitnesses.resize(populationSize);
 
-    hostIndividualInfo = new IndividualInfo[populationSize];
+    hostIndividualInfo = std::make_unique<IndividualInfo[]>(populationSize);
 
     deviceMalloc(&deviceFitnesses, populationSize);
     deviceMalloc(&deviceCanvas, canvasSize);
@@ -108,11 +108,8 @@ CudaFitnessEngine::Engine::Engine() {
     deviceMalloc(&deviceWeights, imSize);
     deviceMalloc(&deviceIndividualInfo, populationSize);
 
-    Vec3f* hostImage = new Vec3f[imSize];
-    defer { delete[] hostImage; };
-
-    f64* hostWeights = new f64[imSize];
-    defer { delete[] hostWeights; };
+    auto hostImage = std::make_unique<Vec3f[]>(imSize);
+    auto hostWeights = std::make_unique<f64[]>(imSize);
 
     Color* target = reinterpret_cast<Color*>(globalCfg.targetImage.getData());
     f64* weights = globalCfg.targetImage.getWeights();
@@ -142,8 +139,8 @@ CudaFitnessEngine::Engine::Engine() {
         std::abort();
     }
 
-    copyHostToDevice(deviceImage, hostImage, imSize);
-    copyHostToDevice(deviceWeights, hostWeights, imSize);
+    copyHostToDevice(deviceImage, hostImage.get(), imSize);
+    copyHostToDevice(deviceWeights, hostWeights.get(), imSize);
 
     // Shared memory is now fixed and doesn't depend on maxTriangles anymore :)
 
@@ -162,8 +159,6 @@ CudaFitnessEngine::Engine::~Engine() {
     cudaFree(deviceImage);
     cudaFree(deviceIndividualInfo);
     cudaFree(deviceWeights);
-
-    free(hostIndividualInfo);
 }
 
 inline static __device__
@@ -512,8 +507,9 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
     profiler.start("cudaFitness:copy2device", "Copy");
     auto deviceTriangles = deviceMalloc<VecTriangle>(triangles.size());
     defer { cudaFree(deviceTriangles); };
+
     copyHostToDevice(deviceTriangles, triangles.data(), triangles.size());
-    copyHostToDevice(deviceIndividualInfo, hostIndividualInfo, populationSize);
+    copyHostToDevice(deviceIndividualInfo, hostIndividualInfo.get(), populationSize);
     cudaDeviceSynchronize();
     profiler.stop("cudaFitness:copy2device");
 
