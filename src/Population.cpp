@@ -69,7 +69,7 @@ Population Population::breed() const {
     for (i32 i = 0; i < ELITE; ++i)
         nextGen.individuals.push_back(individuals[idx[i]]);
 
-    std::uniform_int_distribution<i32> dist(0, globalCfg.eliteBreedPoolSize - 1);
+    std::uniform_int_distribution<i32> dist(0, globalCfg.breedPoolSize - 1);
 
     while (nextGen.individuals.size() < individuals.size()) {
         i32 parent1 = dist(globalRNG);

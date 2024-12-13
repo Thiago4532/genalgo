@@ -11,6 +11,15 @@ i64 Triangle::area() const {
     return std::abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y));
 }
 
+i64 Triangle::squareDistance(Triangle const& other) const {
+    Point<i32> center = (a + b + c) / 3;
+    Point<i32> otherCenter = (other.a + other.b + other.c) / 3;
+
+    i64 dx = center.x - otherCenter.x;
+    i64 dy = center.y - otherCenter.y;
+    return dx * dx + dy * dy;
+}
+
 static i32 fineAdjust(i32 range) {
     return randomI32(-range, range);
 }
@@ -28,12 +37,12 @@ bool Triangle::mutateFineColor() {
     color.r = fineAdjustColor(color.r, 25);
     color.g = fineAdjustColor(color.g, 25);
     color.b = fineAdjustColor(color.b, 25);
-    color.a = fineAdjustColor(color.a, 25);
+    color.a = std::max<u8>(fineAdjustColor(color.a, 25), 30);
     return true;
 }
 
 bool Triangle::mutateFineMoveX() {
-    i32 dx = fineAdjust(5);
+    i32 dx = fineAdjust(10);
     a.x += dx;
     b.x += dx;
     c.x += dx;
@@ -41,7 +50,7 @@ bool Triangle::mutateFineMoveX() {
 }
 
 bool Triangle::mutateFineMoveY() {
-    i32 dy = fineAdjust(5);
+    i32 dy = fineAdjust(10);
     a.y += dy;
     b.y += dy;
     c.y += dy;
@@ -49,7 +58,7 @@ bool Triangle::mutateFineMoveY() {
 }
 
 bool Triangle::mutateFineScale() {
-    f64 scale = randomF64(0.9, 1.1);
+    f64 scale = randomF64(0.8, 1.2);
 
     // Scale the triangle around its center
     Point<f64> center = (a + b + c) / 3.0;
@@ -65,7 +74,7 @@ bool Triangle::mutateFineRotate() {
                           p.x * std::sin(angle) + p.y * std::cos(angle)};
     };
 
-    f64 angle = randomF64(-0.1, 0.1);
+    f64 angle = randomF64(-0.15, 0.15);
 
     // Rotate the triangle around its center
     Point<f64> center = (a + b + c) / 3.0;

@@ -30,7 +30,7 @@ struct GlobalConfig {
 
     // Number of elite individuals
     i32 eliteSize;
-    i32 eliteBreedPoolSize;
+    i32 breedPoolSize;
 
     // Fitness engine
     const char* fitnessEngine;

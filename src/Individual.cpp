@@ -54,11 +54,39 @@ bool Individual::mutateRemove() {
     return true;
 }
 
+template<typename F>
+static i32 select(i32 n, F&& f) {
+    std::vector<std::pair<double, i32>> probs;
+    probs.reserve(n);
+
+    f64 total = 0;
+    for (i32 i = 0; i < n; i++) {
+        std::pair<double, i32> p = f(i);
+
+        probs.emplace_back(p);
+        total += p.first;
+    }
+
+    f64 prob = randomF64(0, total);
+    i32 i = 0;
+    while (prob > probs[i].first) {
+        prob -= probs[i].first;
+        i++;
+    }
+
+    return probs[i].second;
+}
+
 bool Individual::mutateReplace() {
     if (triangles.empty())
         return false;
 
-    i32 i = randomI32(0, size() - 1);
+    i32 i = select(triangles.size(), [&](i32 i) {
+        f64 prob = 1.0 / (std::sqrt(triangles[i].area()) * triangles[i].color.a);
+
+        return std::make_pair(prob, i);
+    });
+    
     i32 j = randomI32(0, size() - 1);
     triangles.erase(begin() + i);
     triangles.insert(begin() + j, randomTriangle());
@@ -83,9 +111,14 @@ bool Individual::mutateMerge() {
         return false;
 
     i32 i = randomI32(0, size() - 1);
-    i32 j = randomI32(0, size() - 2);
-    if (j >= i)
-        j++;
+    i32 j = select(size() - 1,
+        [&](i32 j) {
+            if (j >= i) ++j;
+
+            f64 prob = 1.0 / std::sqrt(triangles[i].squareDistance(triangles[j]));
+            return std::make_pair(prob, j);
+        }
+    );
 
     triangles[i].merge(triangles[j]);
     triangles.erase(begin() + j);

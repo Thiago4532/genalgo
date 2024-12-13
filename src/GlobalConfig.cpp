@@ -167,24 +167,24 @@ void GlobalConfig::loadConstants() {
     svgScale = 16;
 
     // Number of individuals in the population
-    populationSize = 100;
+    populationSize = 200;
 
     // Number of triangles in each individual
     numTriangles = 100;
     maxTriangles = 1100; 
 
     // Number of elite individuals
-    eliteSize = 1;
-    eliteBreedPoolSize = 10;
+    eliteSize = 2;
+    breedPoolSize = 20;
 
     // Mutation parameters
     //   * Probabilities are mutually exclusive, they must sum to <= 1
     mutationChanceAdd = 0.05;
-    mutationChanceRemove = 0.1;
-    mutationChanceReplace = 0.05;
+    mutationChanceRemove = 0.05;
+    mutationChanceReplace = 0.2;
     mutationChanceSwap = 0.05;
-    mutationChanceMerge = 0.2;
-    mutationChanceShape = 0.55;
+    mutationChanceMerge = 0.15;
+    mutationChanceShape = 0.5;
 
     // Shape-specific mutation parameters 
     //   * Probabilities are mutually exclusive, they must sum to <= 1
