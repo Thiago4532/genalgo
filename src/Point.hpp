@@ -96,24 +96,10 @@ inline void serialize(JSONSerializerState& state, const Point<i32>& value) {
 }
 
 inline void deserialize(JSONDeserializerState& state, Point<i32>& value) {
-    auto obj = state.consume_object();
-    std::string key;
-
-    bool x = false, y = false;
-    while (obj.consume_key(key)) {
-        if (key == "x" && !x) {
-            obj.consume_value(value.x);
-            x = true;
-        } else if (key == "y" && !y) {
-            obj.consume_value(value.y);
-            y = true;
-        } else {
-            obj.throw_unexpected_key(key);
-        }
-    }
-
-    if (!x || !y)
-        throw json_deserialize_exception("Point: Missing required fields");
+    state.consume_object(
+        "x", value.x,
+        "y", value.y
+    );
 }
 
 #endif // GA_HAS_CPP20

@@ -23,41 +23,18 @@ struct AppState {
     }
 
     friend void deserialize(JSONDeserializerState& state, AppState& self) {
-        auto obj = state.consume_object();
-        std::string key;
+        // TODO: When the JSON API become mature enough, allow size to be a optional field
+        // self.size = {globalCfg.targetImage.getWidth(), globalCfg.targetImage.getHeight()};
 
-        bool mark[4] = {0};
-        while (obj.consume_key(key)) {
-            if (key == "seed" && !mark[0]) {
-                obj.consume_value(self.seed);
-                mark[0] = true;
-            } else if (key == "generation" && !mark[1]) {
-                obj.consume_value(self.generation);
-                mark[1] = true;
-            } else if (key == "size" && !mark[2]) {
-                obj.consume_value(self.size);
-                mark[2] = true;
-            } else if (key == "population" && !mark[3]) {
-                obj.consume_value(self.population);
-                mark[3] = true;
-            } else {
-                obj.throw_unexpected_key(key);
-            }
-        }
+        state.consume_object(
+            "seed", self.seed,
+            "generation", self.generation,
+            "size", self.size,
+            "population", self.population
+        );
 
         if (self.generation < 0)
             throw json_deserialize_exception("AppState: Generation must be non-negative");
-
-        // Note: size is not a required field
-        if (!mark[2]) {
-            self.size = {globalCfg.targetImage.getWidth(), globalCfg.targetImage.getHeight()};
-            mark[2] = true;
-        }
-
-        for (bool m : mark) {
-            if (!m)
-                throw json_deserialize_exception("AppState: Missing required fields");
-        }
     }
 };
 

@@ -131,30 +131,12 @@ void serialize(JSONSerializerState& state, Triangle const& self) {
 }
 
 void deserialize(JSONDeserializerState& state, Triangle& self) {
-    auto obj = state.consume_object();
-    std::string key;
-
-    bool a = false, b = false, c = false, color = false;
-    while (obj.consume_key(key)) {
-        if (key == "a" && !a) {
-            obj.consume_value(self.a);
-            a = true;
-        } else if (key == "b" && !b) {
-            obj.consume_value(self.b);
-            b = true;
-        } else if (key == "c" && !c) {
-            obj.consume_value(self.c);
-            c = true;
-        } else if (key == "color" && !color) {
-            obj.consume_value(self.color);
-            color = true;
-        } else {
-            obj.throw_unexpected_key(key);
-        }
-    }
-
-    if (!a || !b || !c || !color)
-        throw json_deserialize_exception("Triangle: Missing required fields");
+    state.consume_object(
+        "a", self.a,
+        "b", self.b,
+        "c", self.c,
+        "color", self.color
+    );
 }
 
 GA_NAMESPACE_END

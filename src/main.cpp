@@ -233,10 +233,12 @@ GA_NAMESPACE_END
 
 // Entry point
 int main(int argc, char* argv[]) {
-    genalgo::JSONDeserializerState::my_main();
-    // genalgo::SignalHandler::setup();
-    // if (!genalgo::setupConfiguration(argc, argv))
-    //     return 1;
+    // genalgo::JSONDeserializerState::my_main();
+    // return 0;
 
-    // return genalgo::main();
+    genalgo::SignalHandler::setup();
+    if (!genalgo::setupConfiguration(argc, argv))
+        return 1;
+
+    return genalgo::main();
 }

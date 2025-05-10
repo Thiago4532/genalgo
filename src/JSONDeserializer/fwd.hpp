@@ -6,7 +6,7 @@
 GA_NAMESPACE_BEGIN
 
 class JSONDeserializerState;
-class object_consumer_antigo;
+class _JSONObjectConsumer;
 class array_consumer_antigo;
 
 GA_NAMESPACE_END

@@ -73,21 +73,93 @@ template void JSONDeserializerState::consume_number<u64>(u64& value);
 
 void JSONDeserializerState::consume_string(std::string& str) {
     consume_whitespaces();
-    if (is.peek() != '"')
+    if (is.eof() || is.peek() != '"') {
         throw json_deserialize_exception("Expected '\"' while deserializing JSON string");
+    }
     is.get();
 
     str.clear();
     char c;
-    while ((c = getc(is)) != '"') {
-        // TODO: handle escape sequences
-        str.push_back(c);
+    while (true) {
+        c = getc(is);
+        if (c == '"') {
+            break;
+        }
+
+        if (c == '\\') {
+            c = getc(is);
+            switch (c) {
+                case '"':  str.push_back('"');  break;
+                case '\\': str.push_back('\\'); break;
+                case '/':  str.push_back('/');  break;
+                case 'b':  str.push_back('\b'); break;
+                case 'f':  str.push_back('\f'); break;
+                case 'n':  str.push_back('\n'); break;
+                case 'r':  str.push_back('\r'); break;
+                case 't':  str.push_back('\t'); break;
+                case 'u': {
+                    std::string hex_digits;
+                    hex_digits.reserve(4);
+                    for (int i = 0; i < 4; ++i) {
+                        char hex_char = getc(is);
+                        if (!std::isxdigit(static_cast<unsigned char>(hex_char))) {
+                            throw json_deserialize_exception("Invalid Unicode escape sequence: non-hex character '" + std::string(1, hex_char) + "'");
+                        }
+                        hex_digits.push_back(hex_char);
+                    }
+                    
+                    unsigned long codepoint_ul;
+                    try {
+                        codepoint_ul = std::stoul(hex_digits, nullptr, 16);
+                    } catch (const std::out_of_range& oor) {
+                        throw json_deserialize_exception("Invalid Unicode escape sequence: value out of range for stoul");
+                    } catch (const std::invalid_argument& ia) {
+                        throw json_deserialize_exception("Invalid Unicode escape sequence: invalid argument for stoul");
+                    }
+                    
+                    // Ensure codepoint fits in a standard range (e.g. for char32_t or similar)
+                    // Here we cast to unsigned int as a common intermediate.
+                    unsigned int codepoint = static_cast<unsigned int>(codepoint_ul);
+
+                    // Convert codepoint to UTF-8 and append to str
+                    // This simple conversion handles BMP characters (U+0000 to U+FFFF)
+                    // It does not handle surrogate pairs for characters outside BMP.
+                    if (codepoint <= 0x7F) { // 1-byte sequence (ASCII)
+                        str.push_back(static_cast<char>(codepoint));
+                    } else if (codepoint <= 0x7FF) { // 2-byte sequence
+                        str.push_back(static_cast<char>(0xC0 | (codepoint >> 6)));
+                        str.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+                    } else if (codepoint <= 0xFFFF) { // 3-byte sequence
+                        // Check for UTF-16 surrogate pairs, which are invalid if not part of a pair
+                        if (codepoint >= 0xD800 && codepoint <= 0xDFFF) {
+                            throw json_deserialize_exception("Invalid Unicode escape sequence: lone surrogate U+" + hex_digits);
+                        }
+                        str.push_back(static_cast<char>(0xE0 | (codepoint >> 12)));
+                        str.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+                        str.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+                    } else {
+                        // Codepoints > 0xFFFF would require 4-byte UTF-8 sequences and handling of
+                        // JSON's \uXXXX\uYYYY surrogate pair mechanism if full Unicode support is needed.
+                        // For this implementation, we'll consider this an error or unsupported.
+                        throw json_deserialize_exception("Unicode codepoint U+" + hex_digits + " outside BMP or unhandled surrogate pair");
+                    }
+                    break;
+                }
+                default:
+                    throw json_deserialize_exception("Invalid escape sequence: \\" + std::string(1, c));
+            }
+        } else {
+            if (static_cast<unsigned char>(c) < 0x20) {
+                 throw json_deserialize_exception("Unescaped control character in string: code " + std::to_string(static_cast<unsigned char>(c)));
+            }
+            str.push_back(c);
+        }
     }
 }
 
-object_consumer_antigo JSONDeserializerState::consume_object() {
+_JSONObjectConsumer JSONDeserializerState::_consume_object() {
     consume_whitespaces();
-    return object_consumer_antigo(is);
+    return _JSONObjectConsumer(is);
 }
 
 array_consumer_antigo JSONDeserializerState::consume_array() {
@@ -95,18 +167,18 @@ array_consumer_antigo JSONDeserializerState::consume_array() {
     return array_consumer_antigo(is);
 }
 
-object_consumer_antigo::object_consumer_antigo(std::istream& is) : is(is) {
+_JSONObjectConsumer::_JSONObjectConsumer(std::istream& is) : is(is) {
     if (is.peek() != '{')
         throw json_deserialize_exception("Expected '{' while consuming object");
     is.get();
 }
 
-object_consumer_antigo::~object_consumer_antigo() {
+_JSONObjectConsumer::~_JSONObjectConsumer() {
     if (!end)
         std::cerr << "Warning: JSONObjectConsumer destroyed without consuming all values\n";
 }
 
-bool object_consumer_antigo::consume_key(std::string& key) {
+bool _JSONObjectConsumer::consume_key(std::string& key) {
     if (end)
         return false;
     if (key_consumed)
@@ -139,7 +211,7 @@ bool object_consumer_antigo::consume_key(std::string& key) {
     return true;
 }
 
-void object_consumer_antigo::consume_end() {
+void _JSONObjectConsumer::consume_end() {
     if (end)
         return;
     JSONDeserializerState state(is);
@@ -193,6 +265,179 @@ void array_consumer_antigo::consume_end() {
         throw json_deserialize_exception("Array: Expected ']' after consuming all values");
     is.get();
     end = true;
+}
+
+void JSONDeserializerState::_discard_string() {
+    char c = getc(is); // Consume opening '"'. Error if not '\"' handled by caller or initial check.
+    // (Caller of _discard_string should ensure it was called because a '"' was peeked)
+
+    bool escape = false;
+    while (true) {
+        c = getc(is); // Throws on EOF if string is unterminated
+        if (escape) {
+            escape = false; 
+        } else if (c == '\\') {
+            escape = true;
+        } else if (c == '"') {
+            break; // End of string
+        }
+    }
+}
+
+void JSONDeserializerState::_discard_number() {
+    // Consume an optional sign
+    if (!is.eof() && is.peek() == '-') {
+        getc(is);
+    }
+
+    // Consume integer part (digits)
+    if (!is.eof() && !is_digit(is.peek())) { // Must have at least one digit if no fraction/exponent
+        // If it's just '-' it's not a valid number.
+        // This check might be too strict if called after already confirming it's a number.
+        // Assume caller confirmed it starts like a number.
+    }
+    while (!is.eof() && is_digit(is.peek())) {
+        getc(is);
+    }
+
+    // Consume fractional part
+    if (!is.eof() && is.peek() == '.') {
+        getc(is); // consume '.'
+        if (is.eof() || !is_digit(is.peek())) {
+             throw json_deserialize_exception("Number has '.' but no digits after it during discard");
+        }
+        while (!is.eof() && is_digit(is.peek())) {
+            getc(is);
+        }
+    }
+
+    // Consume exponent part
+    if (!is.eof() && (is.peek() == 'e' || is.peek() == 'E')) {
+        getc(is); // consume 'e' or 'E'
+        if (!is.eof() && (is.peek() == '+' || is.peek() == '-')) {
+            getc(is); // consume sign
+        }
+        if (is.eof() || !is_digit(is.peek())) {
+            throw json_deserialize_exception("Number has exponent 'e'/'E' but no digits after it (or after sign) during discard");
+        }
+        while (!is.eof() && is_digit(is.peek())) {
+            getc(is);
+        }
+    }
+}
+
+void JSONDeserializerState::_discard_literal(const char* literal_name, std::size_t len) {
+    for (std::size_t i = 0; i < len; ++i) {
+        char c = getc(is);
+        if (c != literal_name[i]) {
+            throw json_deserialize_exception(std::string("Expected literal '") + literal_name + "' but found mismatch during discard");
+        }
+    }
+}
+
+void JSONDeserializerState::_discard_object() {
+    char c = getc(is);
+    consume_whitespaces();
+
+    if (!is.eof() && is.peek() == '}') {
+        getc(is);
+        return;
+    }
+
+    while (true) {
+        // Discard key (which is a string)
+        consume_whitespaces();
+        if (is.eof() || is.peek() != '"') throw json_deserialize_exception("Expected string key in object discard");
+        _discard_string();
+        consume_whitespaces();
+
+        c = getc(is);
+        if (c != ':') throw json_deserialize_exception("Expected ':' after key in object discard");
+
+        discard_value();
+        consume_whitespaces();
+
+        if (is.eof()) throw json_deserialize_exception("Unexpected EOF in object discard");
+        c = static_cast<char>(is.peek());
+        if (c == '}') {
+            getc(is);
+            break;
+        }
+        if (c != ',') throw json_deserialize_exception("Expected ',' or '}' in object discard");
+        getc(is);
+    }
+}
+
+void JSONDeserializerState::_discard_array() {
+    char c = getc(is); // Consume '[' (caller should have peeked this)
+    consume_whitespaces();
+
+    if (!is.eof() && is.peek() == ']') {
+        getc(is); // Consume ']'
+        return;
+    }
+
+    while (true) {
+        discard_value();
+        consume_whitespaces();
+
+        if (is.eof()) throw json_deserialize_exception("Unexpected EOF in array discard");
+        c = static_cast<char>(is.peek());
+        if (c == ']') {
+            getc(is); // Consume ']'
+            break;
+        }
+        if (c != ',') throw json_deserialize_exception("Expected ',' or ']' in array discard");
+        getc(is); // Consume ','
+    }
+}
+
+void JSONDeserializerState::discard_value() {
+    consume_whitespaces();
+    if (is.eof()) {
+        throw json_deserialize_exception("Unexpected EOF: trying to discard a value but stream is empty");
+    }
+
+    char next_char = static_cast<char>(is.peek());
+
+    switch (next_char) {
+        case '{':
+            _discard_object();
+            break;
+        case '[':
+            _discard_array();
+            break;
+        case '"':
+            _discard_string();
+            break;
+        case 't': // true
+            _discard_literal("true", 4);
+            break;
+        case 'f': // false
+            _discard_literal("false", 5);
+            break;
+        case 'n': // null
+            _discard_literal("null", 4);
+            break;
+        default:
+            if (next_char == '-' || (next_char >= '0' && next_char <= '9')) {
+                _discard_number();
+            } else {
+                throw json_deserialize_exception("Unexpected character '" + std::string(1, next_char) + "' while starting to discard value");
+            }
+            break;
+    }
+}
+
+void JSONDeserializerState::my_main() {
+    JSONDeserializerState state(std::cin);
+    int x = -1, y = -1;
+    state.consume_object(
+        "x", x,
+        "y", y
+    );
+    std::cout << x << " " << y << std::endl;
+    // std::cout << consumer.all_fields_consumed() << std::endl;
 }
 
 GA_NAMESPACE_END
