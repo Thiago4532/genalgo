@@ -85,28 +85,28 @@ void JSONDeserializerState::consume_string(std::string& str) {
     }
 }
 
-JSONObjectConsumer JSONDeserializerState::consume_object() {
+object_consumer_antigo JSONDeserializerState::consume_object() {
     consume_whitespaces();
-    return JSONObjectConsumer(is);
+    return object_consumer_antigo(is);
 }
 
-JSONArrayConsumer JSONDeserializerState::consume_array() {
+array_consumer_antigo JSONDeserializerState::consume_array() {
     consume_whitespaces();
-    return JSONArrayConsumer(is);
+    return array_consumer_antigo(is);
 }
 
-JSONObjectConsumer::JSONObjectConsumer(std::istream& is) : is(is) {
+object_consumer_antigo::object_consumer_antigo(std::istream& is) : is(is) {
     if (is.peek() != '{')
         throw json_deserialize_exception("Expected '{' while consuming object");
     is.get();
 }
 
-JSONObjectConsumer::~JSONObjectConsumer() {
+object_consumer_antigo::~object_consumer_antigo() {
     if (!end)
         std::cerr << "Warning: JSONObjectConsumer destroyed without consuming all values\n";
 }
 
-bool JSONObjectConsumer::consume_key(std::string& key) {
+bool object_consumer_antigo::consume_key(std::string& key) {
     if (end)
         return false;
     if (key_consumed)
@@ -139,7 +139,7 @@ bool JSONObjectConsumer::consume_key(std::string& key) {
     return true;
 }
 
-void JSONObjectConsumer::consume_end() {
+void object_consumer_antigo::consume_end() {
     if (end)
         return;
     JSONDeserializerState state(is);
@@ -150,18 +150,18 @@ void JSONObjectConsumer::consume_end() {
     end = true;
 }
 
-JSONArrayConsumer::JSONArrayConsumer(std::istream& is) : is(is) {
+array_consumer_antigo::array_consumer_antigo(std::istream& is) : is(is) {
     if (is.peek() != '[')
         throw json_deserialize_exception("Expected '[' while consuming array");
     is.get();
 }
 
-JSONArrayConsumer::~JSONArrayConsumer() {
+array_consumer_antigo::~array_consumer_antigo() {
     if (!end)
         std::cerr << "Warning: JSONArrayConsumer destroyed without consuming all values\n";
 }
 
-bool JSONArrayConsumer::consume_separator_or_end() {
+bool array_consumer_antigo::consume_separator_or_end() {
     if (end)
         return false;
     JSONDeserializerState state(is);
@@ -184,7 +184,7 @@ bool JSONArrayConsumer::consume_separator_or_end() {
     return true;
 }
 
-void JSONArrayConsumer::consume_end() {
+void array_consumer_antigo::consume_end() {
     if (end)
         return;
     JSONDeserializerState state(is);

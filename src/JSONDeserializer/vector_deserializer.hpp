@@ -8,7 +8,7 @@ GA_NAMESPACE_BEGIN
 
 template <JSONDeserializable T>
 void deserialize(JSONDeserializerState& state, std::vector<T>& vec) {
-    JSONArrayConsumer arr = state.consume_array();
+    array_consumer_antigo arr = state.consume_array();
 
     while (true) {
         T value;
