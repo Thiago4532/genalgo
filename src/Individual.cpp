@@ -17,7 +17,7 @@ static Triangle randomTriangle() {
     std::uniform_int_distribution<i32> xDist(0, width - 1);
     std::uniform_int_distribution<i32> yDist(0, height - 1);
     std::uniform_int_distribution<u8> colorDist(0, 255);
-    std::uniform_int_distribution<u8> alphaDist(30, 255);
+    std::uniform_int_distribution<u8> alphaDist(50, 255);
 
     Triangle t;
     t.a.x = xDist(globalRNG);
@@ -32,26 +32,6 @@ static Triangle randomTriangle() {
     t.color.a = alphaDist(globalRNG);
 
     return t;
-}
-
-bool Individual::mutateAdd() {
-    if (size() >= globalCfg.maxTriangles)
-        return mutateReplace();
-    i32 width = globalCfg.targetImage.getWidth();
-    i32 height = globalCfg.targetImage.getHeight();
-
-    i32 id = randomI32(0, size());
-    triangles.insert(begin() + id, randomTriangle());
-    return true;
-}
-
-bool Individual::mutateRemove() {
-    if (triangles.size() <= 1)
-        return mutateReplace();
-
-    i32 id = randomI32(0, size() - 1);
-    triangles.erase(begin() + id);
-    return true;
 }
 
 template<typename F>
@@ -77,6 +57,30 @@ static i32 select(i32 n, F&& f) {
     return probs[i].second;
 }
 
+bool Individual::mutateAdd() {
+    if (size() >= globalCfg.maxTriangles)
+        return mutateReplace();
+    i32 width = globalCfg.targetImage.getWidth();
+    i32 height = globalCfg.targetImage.getHeight();
+
+    // i32 id = randomI32(0, size());
+    // triangles.insert(begin() + id, randomTriangle());
+    triangles.push_back(randomTriangle());
+    return true;
+}
+
+bool Individual::mutateRemove() {
+    if (triangles.size() <= 1)
+        return mutateReplace();
+
+    i32 id = select(size(), [&](i32 i) {
+        f64 prob = 1.0 / (std::sqrt(triangles[i].area()) * triangles[i].color.a);
+        return std::make_pair(prob, i);
+    });
+    triangles.erase(begin() + id);
+    return true;
+}
+
 bool Individual::mutateReplace() {
     if (triangles.empty())
         return false;
@@ -87,9 +91,11 @@ bool Individual::mutateReplace() {
         return std::make_pair(prob, i);
     });
     
-    i32 j = randomI32(0, size() - 1);
-    triangles.erase(begin() + i);
-    triangles.insert(begin() + j, randomTriangle());
+
+    triangles[i] = randomTriangle();
+    // i32 j = randomI32(0, size() - 1);
+    // triangles.erase(begin() + i);
+    // triangles.insert(begin() + j, randomTriangle());
     return true;
 }
 

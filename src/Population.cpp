@@ -16,7 +16,7 @@ void Population::populate(i32 size, i32 numTriangles) {
     std::uniform_int_distribution<i32> xDist(0, width - 1);
     std::uniform_int_distribution<i32> yDist(0, height - 1);
     std::uniform_int_distribution<u8> colorDist(0, 255);
-    std::uniform_int_distribution<u8> alphaDist(30, 255);
+    std::uniform_int_distribution<u8> alphaDist(50, 255);
 
     while(individuals.size() < size) {
         Individual& i = individuals.emplace_back();

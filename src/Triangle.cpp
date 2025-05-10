@@ -37,7 +37,7 @@ bool Triangle::mutateFineColor() {
     color.r = fineAdjustColor(color.r, 25);
     color.g = fineAdjustColor(color.g, 25);
     color.b = fineAdjustColor(color.b, 25);
-    color.a = std::max<u8>(fineAdjustColor(color.a, 25), 30);
+    color.a = fineAdjustColor(color.a, 25);
     return true;
 }
 

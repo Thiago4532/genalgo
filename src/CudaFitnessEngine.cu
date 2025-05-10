@@ -561,7 +561,7 @@ void CudaFitnessEngine::Engine::evaluate(std::vector<Individual>& individuals) {
 
     profiler.start("cudaFitness:copy2individuals", "Copy to individuals");
     for (i32 i = 0; i < populationSize; ++i) {
-        individuals[i].setFitness(fitnesses[i]);
+        individuals[i].setFitness(std::pow(fitnesses[i], 0.7));
     }
     profiler.stop("cudaFitness:copy2individuals");
 
