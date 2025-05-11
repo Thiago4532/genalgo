@@ -123,7 +123,7 @@ void Triangle::merge(Triangle const& other) {
 }
 
 void serialize(JSONSerializerState& state, Triangle const& self) {
-    state.return_object()
+    state.serialize_object()
         .add("a", self.a)
         .add("b", self.b)
         .add("c", self.c)

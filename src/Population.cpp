@@ -83,7 +83,7 @@ Population Population::breed() const {
 }
 
 void serialize(JSONSerializerState& state, Population const& self) {
-    state.return_value(self.individuals);
+    state.serialize(self.individuals);
 }
 
 void deserialize(JSONDeserializerState& state, Population& self) {

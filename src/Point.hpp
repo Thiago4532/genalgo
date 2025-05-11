@@ -90,7 +90,7 @@ Point<T>& operator/=(Point<T>& lhs, U&& rhs) {
 }
 
 inline void serialize(JSONSerializerState& state, const Point<i32>& value) {
-    state.return_object()
+    state.serialize_object()
         .add("x", value.x)
         .add("y", value.y);
 }

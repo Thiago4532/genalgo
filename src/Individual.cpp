@@ -206,7 +206,7 @@ Individual Individual::crossover(Individual const& other) const {
 }
 
 void serialize(JSONSerializerState& state, Individual const& self) {
-    state.return_value(self.triangles);
+    state.serialize(self.triangles);
 }
 
 void deserialize(JSONDeserializerState& state, Individual& self) {

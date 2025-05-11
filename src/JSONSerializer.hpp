@@ -36,28 +36,27 @@ public:
 
     ~JSONSerializerState() {
         if (!has_value)
-            return_null();
+            serialize_null();
     }
 
     JSONSerializerState(const JSONSerializerState&) = delete;
     JSONSerializerState& operator=(const JSONSerializerState&) = delete;
-
+    
     template <JSONSerializable T>
-    void return_value(const T& value) {
-        serialize(*this, value);
-    }
+    void serialize(const T& value);
 
     template<std::integral T>
-    void return_number(T value);
-    void return_string(std::string_view value);
-    void return_null();
-    JSONObjectBuilder return_object();
-    JSONArrayBuilder return_array();
+    void serialize_number(T value);
+    void serialize_string(std::string_view value);
+    void serialize_null();
+    JSONObjectBuilder serialize_object();
+    JSONArrayBuilder serialize_array();
 
 private:
     std::ostream& os;
     bool has_value = false;
     void begin_return();
+
 };
 
 class JSONObjectBuilder {
@@ -111,11 +110,11 @@ private:
 
 template<std::integral T>
 inline void serialize(JSONSerializerState& state, T value) {
-    state.return_number(value);
+    state.serialize_number(value);
 }
 
 inline void serialize(JSONSerializerState& state, std::string_view value) {
-    state.return_string(value);
+    state.serialize_string(value);
 }
 
 template <JSONCallSerializable T>
@@ -136,7 +135,7 @@ struct serialize_fn {
 
     template <JSONSerializable T>
     void operator()(std::ostream& os, const T& value) const {
-        JSONSerializerState(os).return_value(value);
+        JSONSerializerState(os).serialize(value);
     }
 };
 
@@ -144,6 +143,11 @@ struct serialize_fn {
 
 inline namespace __CPO { inline constexpr detail::serialize_fn serialize {}; }
 
+}
+
+template <JSONSerializable T>
+inline void JSONSerializerState::serialize(const T& value) {
+    return json::serialize(*this, value);
 }
 
 GA_NAMESPACE_END

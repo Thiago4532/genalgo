@@ -21,7 +21,7 @@ static_assert(sizeof(Color) == 4 && alignof(Color) == 1, "Color must be 4 bytes 
 #if GA_HAS_CPP20
 
 inline void serialize(JSONSerializerState& state, const Color& color) {
-    state.return_object()
+    state.serialize_object()
         .add("r", (int)color.r)
         .add("g", (int)color.g)
         .add("b", (int)color.b)

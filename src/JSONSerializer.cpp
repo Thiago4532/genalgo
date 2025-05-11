@@ -50,28 +50,28 @@ void JSONSerializerState::begin_return() {
 }
 
 template<std::integral T>
-void JSONSerializerState::return_number(T value) {
+void JSONSerializerState::serialize_number(T value) {
     begin_return();
     os << value;
 }
 
-template void JSONSerializerState::return_number<i8>(i8 value);
-template void JSONSerializerState::return_number<u8>(u8 value);
-template void JSONSerializerState::return_number<i16>(i16 value);
-template void JSONSerializerState::return_number<u16>(u16 value);
-template void JSONSerializerState::return_number<i32>(i32 value);
-template void JSONSerializerState::return_number<u32>(u32 value);
-template void JSONSerializerState::return_number<i64>(i64 value);
-template void JSONSerializerState::return_number<u64>(u64 value);
+template void JSONSerializerState::serialize_number<i8>(i8 value);
+template void JSONSerializerState::serialize_number<u8>(u8 value);
+template void JSONSerializerState::serialize_number<i16>(i16 value);
+template void JSONSerializerState::serialize_number<u16>(u16 value);
+template void JSONSerializerState::serialize_number<i32>(i32 value);
+template void JSONSerializerState::serialize_number<u32>(u32 value);
+template void JSONSerializerState::serialize_number<i64>(i64 value);
+template void JSONSerializerState::serialize_number<u64>(u64 value);
 
-void JSONSerializerState::return_string(std::string_view value) {
+void JSONSerializerState::serialize_string(std::string_view value) {
     begin_return();
     
     // TODO: Escape characters
     os << '"' << value << '"';
 }
 
-void JSONSerializerState::return_null() {
+void JSONSerializerState::serialize_null() {
     if (has_value)
         throw_multiple_returns();
     has_value = true;
@@ -79,7 +79,7 @@ void JSONSerializerState::return_null() {
     os << "null";
 }
 
-JSONObjectBuilder JSONSerializerState::return_object() {
+JSONObjectBuilder JSONSerializerState::serialize_object() {
     if (has_value)
         throw_multiple_returns();
     has_value = true;
@@ -87,7 +87,7 @@ JSONObjectBuilder JSONSerializerState::return_object() {
     return JSONObjectBuilder(os);
 }
 
-JSONArrayBuilder JSONSerializerState::return_array() {
+JSONArrayBuilder JSONSerializerState::serialize_array() {
     if (has_value)
         throw_multiple_returns();
     has_value = true;

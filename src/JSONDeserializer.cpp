@@ -162,9 +162,9 @@ _JSONObjectConsumer JSONDeserializerState::_consume_object() {
     return _JSONObjectConsumer(is);
 }
 
-array_consumer_antigo JSONDeserializerState::consume_array() {
+JSONArrayConsumer JSONDeserializerState::consume_array() {
     consume_whitespaces();
-    return array_consumer_antigo(is);
+    return JSONArrayConsumer(is);
 }
 
 _JSONObjectConsumer::_JSONObjectConsumer(std::istream& is) : is(is) {
@@ -222,18 +222,18 @@ void _JSONObjectConsumer::consume_end() {
     end = true;
 }
 
-array_consumer_antigo::array_consumer_antigo(std::istream& is) : is(is) {
+JSONArrayConsumer::JSONArrayConsumer(std::istream& is) : is(is) {
     if (is.peek() != '[')
         throw json_deserialize_exception("Expected '[' while consuming array");
     is.get();
 }
 
-array_consumer_antigo::~array_consumer_antigo() {
+JSONArrayConsumer::~JSONArrayConsumer() {
     if (!end)
         std::cerr << "Warning: JSONArrayConsumer destroyed without consuming all values\n";
 }
 
-bool array_consumer_antigo::consume_separator_or_end() {
+bool JSONArrayConsumer::consume_separator_or_end() {
     if (end)
         return false;
     JSONDeserializerState state(is);
@@ -256,7 +256,7 @@ bool array_consumer_antigo::consume_separator_or_end() {
     return true;
 }
 
-void array_consumer_antigo::consume_end() {
+void JSONArrayConsumer::consume_end() {
     if (end)
         return;
     JSONDeserializerState state(is);
@@ -427,17 +427,6 @@ void JSONDeserializerState::discard_value() {
             }
             break;
     }
-}
-
-void JSONDeserializerState::my_main() {
-    JSONDeserializerState state(std::cin);
-    int x = -1, y = -1;
-    state.consume_object(
-        "x", x,
-        "y", y
-    );
-    std::cout << x << " " << y << std::endl;
-    // std::cout << consumer.all_fields_consumed() << std::endl;
 }
 
 GA_NAMESPACE_END

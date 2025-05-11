@@ -15,7 +15,7 @@ struct AppState {
     Point<i32> size;
     
     friend void serialize(JSONSerializerState& state, AppState const& self) {
-        JSONObjectBuilder obj = state.return_object();
+        JSONObjectBuilder obj = state.serialize_object();
         obj.add("seed", self.seed);
         obj.add("generation", self.generation);
         obj.add("size", self.size);

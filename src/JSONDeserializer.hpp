@@ -26,7 +26,7 @@ concept JSONDeserializable = requires(JSONDeserializerState& state, T& obj) {
 
 class JSONDeserializerState {
 public:
-    JSONDeserializerState(std::istream& is)
+    explicit JSONDeserializerState(std::istream& is)
         : is(is) {}
 
     JSONDeserializerState(const JSONDeserializerState&) = delete;
@@ -84,10 +84,8 @@ public:
         }
     }
 
-    array_consumer_antigo consume_array();
+    JSONArrayConsumer consume_array();
     void consume_whitespaces();
-
-    static void my_main();
 private:
     _JSONObjectConsumer _consume_object();
     std::istream& is;
@@ -255,11 +253,11 @@ void JSONDeserializerState::consume_object_from_pairs(std::pair<std::string_view
 //     obj.consume_end();
 // }
 
-class array_consumer_antigo {
+class JSONArrayConsumer {
 public:
-    ~array_consumer_antigo();
-    array_consumer_antigo(array_consumer_antigo const&) = delete;
-    array_consumer_antigo& operator=(array_consumer_antigo const&) = delete;
+    ~JSONArrayConsumer();
+    JSONArrayConsumer(JSONArrayConsumer const&) = delete;
+    JSONArrayConsumer& operator=(JSONArrayConsumer const&) = delete;
 
     template <JSONDeserializable T>
     bool try_consume_value(T& value) {
@@ -280,7 +278,7 @@ public:
 
 private:
     friend JSONDeserializerState;
-    array_consumer_antigo(std::istream& is);
+    explicit JSONArrayConsumer(std::istream& is);
 
     bool consume_separator_or_end();
 

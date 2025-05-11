@@ -8,7 +8,7 @@ GA_NAMESPACE_BEGIN
 
 template <JSONSerializable T>
 void serialize(JSONSerializerState& state, const std::vector<T>& vec) {
-    JSONArrayBuilder a = state.return_array();
+    JSONArrayBuilder a = state.serialize_array();
     for (const T& t : vec) {
         a.add(t);
     }
