@@ -3,6 +3,7 @@
 #include "Color.hpp"
 #include "GlobalConfig.hpp"
 #include "globalRNG.hpp"
+#include <algorithm>
 #include <type_traits>
 
 GA_NAMESPACE_BEGIN
@@ -33,31 +34,60 @@ static u8 fineAdjustColor(u8 color, u8 range) {
     return c;
 }
 
+static void clamp_inplace(Point<i32>& p) {
+    p.x = std::clamp(p.x, 0, globalCfg.targetImage.getWidth() - 1);
+    p.y = std::clamp(p.y, 0, globalCfg.targetImage.getHeight() - 1);
+}
+
+static void clamp_inplace(Triangle& t) {
+    clamp_inplace(t.a);
+    clamp_inplace(t.b);
+    clamp_inplace(t.c);
+}
+
+bool Triangle::mutateVertex() {
+    // Select one vertex randomly
+    Point<i32>* vertices[] = {&a, &b, &c};
+    Point<i32>* vertex_to_mutate = vertices[randomI32(0, 2)];
+
+    i32 width = globalCfg.targetImage.getWidth();
+    i32 height = globalCfg.targetImage.getHeight();
+
+    vertex_to_mutate->x = std::clamp(vertex_to_mutate->x + fineAdjust(globalCfg.vertexMutationRange), 0, width - 1);
+    vertex_to_mutate->y = std::clamp(vertex_to_mutate->y + fineAdjust(globalCfg.vertexMutationRange), 0, height - 1);
+    return true;
+}
+
+
 bool Triangle::mutateFineColor() {
-    color.r = fineAdjustColor(color.r, 25);
-    color.g = fineAdjustColor(color.g, 25);
-    color.b = fineAdjustColor(color.b, 25);
-    color.a = fineAdjustColor(color.a, 25);
+    color.r = fineAdjustColor(color.r, globalCfg.fineColorAdjustRange);
+    color.g = fineAdjustColor(color.g, globalCfg.fineColorAdjustRange);
+    color.b = fineAdjustColor(color.b, globalCfg.fineColorAdjustRange);
+    color.a = fineAdjustColor(color.a, globalCfg.fineColorAdjustRange);
     return true;
 }
 
 bool Triangle::mutateFineMoveX() {
-    i32 dx = fineAdjust(10);
-    a.x += dx;
-    b.x += dx;
-    c.x += dx;
+    i32 dx = fineAdjust(globalCfg.fineMoveAdjustRange);
+    // Apply clamping after move to ensure all vertices stay within bounds
+    i32 width = globalCfg.targetImage.getWidth();
+    a.x = std::clamp(a.x + dx, 0, width - 1);
+    b.x = std::clamp(b.x + dx, 0, width - 1);
+    c.x = std::clamp(c.x + dx, 0, width - 1);
     return true;
 }
 
 bool Triangle::mutateFineMoveY() {
-    i32 dy = fineAdjust(10);
-    a.y += dy;
-    b.y += dy;
-    c.y += dy;
+    i32 dy = fineAdjust(globalCfg.fineMoveAdjustRange);
+    i32 height = globalCfg.targetImage.getHeight();
+    a.y = std::clamp(a.y + dy, 0, height - 1);
+    b.y = std::clamp(b.y + dy, 0, height - 1);
+    c.y = std::clamp(c.y + dy, 0, height - 1);
     return true;
 }
 
 bool Triangle::mutateFineScale() {
+    // TODO: Range should also be configurable
     f64 scale = randomF64(0.8, 1.2);
 
     // Scale the triangle around its center
@@ -65,6 +95,8 @@ bool Triangle::mutateFineScale() {
     a = center + scale * (a - center);
     b = center + scale * (b - center);
     c = center + scale * (c - center);
+
+    clamp_inplace(*this);
     return true;
 }
 
@@ -81,32 +113,26 @@ bool Triangle::mutateFineRotate() {
     a = center + rotate(a - center, angle);
     b = center + rotate(b - center, angle);
     c = center + rotate(c - center, angle);
+
+    clamp_inplace(*this);
     return true;
 }
 
 bool Triangle::mutate() {
-    f64 prob = randomF64(0, 1);
     bool mutated = false;
 
-    if (prob < globalCfg.mutationShapeFineColorChance)
-        return mutateFineColor();
-    prob -= globalCfg.mutationShapeFineColorChance;
-
-    if (prob < globalCfg.mutationShapeFineMoveXChance)
-        return mutateFineMoveX();
-    prob -= globalCfg.mutationShapeFineMoveXChance;
-
-    if (prob < globalCfg.mutationShapeFineMoveYChance)
-        return mutateFineMoveY();
-    prob -= globalCfg.mutationShapeFineMoveYChance;
-
-    if (prob < globalCfg.mutationShapeFineScaleChance)
-        return mutateFineScale();
-    prob -= globalCfg.mutationShapeFineScaleChance;
-
-    if (prob < globalCfg.mutationShapeFineRotateChance)
-        return mutateFineRotate();
-    prob -= globalCfg.mutationShapeFineRotateChance;
+    if (randomF64(0, 1) < globalCfg.mutationShapeVertexChance)
+        mutated |= mutateVertex();
+    if (randomF64(0, 1) < globalCfg.mutationShapeFineColorChance)
+        mutated |= mutateFineColor();
+    if (randomF64(0, 1) < globalCfg.mutationShapeFineMoveXChance)
+        mutated |= mutateFineMoveX();
+    if (randomF64(0, 1) < globalCfg.mutationShapeFineMoveYChance)
+        mutated |= mutateFineMoveY();
+    if (randomF64(0, 1) < globalCfg.mutationShapeFineScaleChance)
+        mutated |= mutateFineScale();
+    if (randomF64(0, 1) < globalCfg.mutationShapeFineRotateChance)
+        mutated |= mutateFineRotate();
 
     return mutated;
 }

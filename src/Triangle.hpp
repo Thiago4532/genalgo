@@ -16,6 +16,7 @@ struct Triangle {
 
     i64 squareDistance(Triangle const& other) const;
 
+    bool mutateVertex();
     bool mutateFineColor();
     bool mutateFineMoveX();
     bool mutateFineMoveY();

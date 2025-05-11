@@ -18,10 +18,9 @@ public:
 
     bool mutateAdd();
     bool mutateRemove();
-    bool mutateReplace();
+    // bool mutateReplace();
     bool mutateSwap();
     bool mutateMerge();
-    bool mutateShape();
 
     bool mutate();
     Individual crossover(Individual const& other) const;

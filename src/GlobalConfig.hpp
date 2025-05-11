@@ -26,11 +26,15 @@ struct GlobalConfig {
 
     // Number of triangles in each individual
     i32 numTriangles;
+    i32 minTriangles;
     i32 maxTriangles; 
 
     // Number of elite individuals
     i32 eliteSize;
     i32 breedPoolSize;
+    
+    // Mutations per offspring
+    i32 mutationsPerOffspring;
 
     // Fitness engine
     const char* fitnessEngine;
@@ -38,21 +42,28 @@ struct GlobalConfig {
     bool breedDisabled;
 
     // Mutation parameters
-    //   * Probabilities are mutually exclusive, they must sum to <= 1
+    //   * Probabilities are NOT mutually exclusive
     f64 mutationChanceAdd;
     f64 mutationChanceRemove;
-    f64 mutationChanceReplace;
+    // f64 mutationChanceReplace;
     f64 mutationChanceSwap;
     f64 mutationChanceMerge;
-    f64 mutationChanceShape;
+
+    f64 mutationChanceShapeOverall;
+    f64 mutationShapePercentage;
 
     // Shape-specific mutation parameters 
-    //   * Probabilities are mutually exclusive, they must sum to <= 1
+    //   * Probabilities are NOT mutually exclusive
     f64 mutationShapeFineColorChance;
     f64 mutationShapeFineMoveXChance;
     f64 mutationShapeFineMoveYChance;
     f64 mutationShapeFineScaleChance;
     f64 mutationShapeFineRotateChance;
+    f64 mutationShapeVertexChance;
+
+    i32 vertexMutationRange;
+    i32 fineColorAdjustRange;
+    i32 fineMoveAdjustRange;
 
     // Penalty for each triangle in the individual
     f64 penalty;

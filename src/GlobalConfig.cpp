@@ -171,28 +171,39 @@ void GlobalConfig::loadConstants() {
 
     // Number of triangles in each individual
     numTriangles = 100;
+    minTriangles = 1;
     maxTriangles = 1100; 
 
     // Number of elite individuals
     eliteSize = 2;
     breedPoolSize = 20;
 
+    // Mutations per offspring
+    mutationsPerOffspring = 1;
+
     // Mutation parameters
-    //   * Probabilities are mutually exclusive, they must sum to <= 1
-    mutationChanceAdd = 0.05;
-    mutationChanceRemove = 0.05;
-    mutationChanceReplace = 0.2;
+    //   * Probabilities are NOT mutually exclusive
+    mutationChanceAdd = 0.10;
+    mutationChanceRemove = 0.08;
+    // mutationChanceReplace = 0.15;
     mutationChanceSwap = 0.05;
-    mutationChanceMerge = 0.15;
-    mutationChanceShape = 0.5;
+    mutationChanceMerge = 0.10;
+
+    mutationChanceShapeOverall = 0.70;
+    mutationShapePercentage = 0.15;
 
     // Shape-specific mutation parameters 
-    //   * Probabilities are mutually exclusive, they must sum to <= 1
-    mutationShapeFineColorChance = 0.20;
-    mutationShapeFineMoveXChance = 0.20;
-    mutationShapeFineMoveYChance = 0.20;
+    //   * Probabilities are NOT mutually exclusive
+    mutationShapeFineColorChance = 0.30;
+    mutationShapeFineMoveXChance = 0.25;
+    mutationShapeFineMoveYChance = 0.25;
     mutationShapeFineScaleChance = 0.20;
     mutationShapeFineRotateChance = 0.20;
+    mutationShapeVertexChance = 0.35;
+
+    vertexMutationRange = 12;
+    fineColorAdjustRange = 25;
+    fineMoveAdjustRange = 10;
 
     // Penalty for each triangle in the individual
     penalty = 0.000005;
