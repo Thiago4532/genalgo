@@ -2,6 +2,7 @@
 #include "GlobalConfig.hpp"
 #include "globalRNG.hpp"
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
 #include "FitnessEngine.hpp"
 #include "JSONSerializer/vector_serializer.hpp"
@@ -48,19 +49,33 @@ void Population::evaluate(FitnessEngine& engine) {
 Population Population::produce_offspring() const {
     Population offspring_population;
     offspring_population.individuals.reserve(this->individuals.size());
+    offspring_population.generation = this->generation + 1;
 
-    const int mutationsPerOffspring = globalCfg.mutationsPerOffspring;
+    i32 mutationsPerOffspring = get_mutations_per_offspring();
 
     for (const Individual& parent_individual : this->individuals) {
         Individual offspring = parent_individual;
 
         for (int m = 0; m < mutationsPerOffspring; ++m) {
-            offspring.mutate();
+            
+            int tries = 0;
+            while(!offspring.mutate())
+                tries++;
+
+            if (tries > 10)
+                std::cout << "Number of attempts until mutation: " << tries << std::endl;
         }
+
+        offspring.setGeneration(offspring_population.generation);
         offspring_population.individuals.push_back(offspring);
     }
 
     return offspring_population;
+}
+
+i32 Population::get_mutations_per_offspring() const {
+    i32 mutationsPerOffspring = 1;
+    return std::min(mutationsPerOffspring, 20);
 }
 
 void Population::select_next_generation(Population&& offspring_population) {
@@ -82,14 +97,20 @@ void Population::select_next_generation(Population&& offspring_population) {
     if (this->individuals.size() > globalCfg.populationSize) {
         this->individuals.resize(globalCfg.populationSize);
     }
+    this->generation = std::max(this->generation, offspring_population.generation);
 }
 
 void serialize(JSONSerializerState& state, Population const& self) {
-    state.serialize(self.individuals);
+    state.serialize_object()
+        .add("generation", self.generation)
+        .add("individuals", self.individuals);
 }
 
 void deserialize(JSONDeserializerState& state, Population& self) {
-    state.consume(self.individuals);
+    state.consume_object(
+        "generation", self.generation,
+        "individuals", self.individuals
+    );
 }
 
 GA_NAMESPACE_END

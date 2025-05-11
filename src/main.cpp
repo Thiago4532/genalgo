@@ -163,6 +163,7 @@ int main() {
         profiler.stop("loop");
         if (logPeriod && cGen % logPeriod == 0) {
             std::cout << "Generation " << nGen << '\n';
+            std::cout << "Mutations per offspring: " << pop.get_mutations_per_offspring() << '\n';
             std::cout << "Seed " << globalCfg.seed << '\n';
             
             f64 decrease = (oldBestFitness - bestIndividual.getFitness()) / oldBestFitness;

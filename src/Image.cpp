@@ -52,7 +52,8 @@ void Image::computeWeights() {
     for (i32 y = 0; y < height; ++y) {
         for (i32 x = 0; x < width; ++x) {
             i32 idx = (y * width + x);
-            weights[idx] = sums[idx];
+            weights[idx] = 0;
+            // weights[idx] = sums[idx];
         }
     }
 }

@@ -26,8 +26,11 @@ public:
 
     friend void serialize(JSONSerializerState& state, const Population& population);
     friend void deserialize(JSONDeserializerState& state, Population& population);
+
+    i32 get_mutations_per_offspring() const;
 private:
     std::vector<Individual> individuals;
+    i32 generation {0};
 };
 
 GA_NAMESPACE_END

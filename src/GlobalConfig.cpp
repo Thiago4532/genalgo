@@ -170,36 +170,36 @@ void GlobalConfig::loadConstants() {
     populationSize = 100;
 
     // Number of triangles in each individual
-    numTriangles = 100;
+    numTriangles = 1;
     minTriangles = 1;
     maxTriangles = 1100; 
 
     // Mutations per offspring
-    mutationsPerOffspring = 2;
+    mutationsPerOffspring = 1;
 
     // Mutation parameters
     //   * Probabilities are NOT mutually exclusive
-    mutationChanceAdd = 0.10;
-    mutationChanceRemove = 0.08;
+    mutationChanceAdd = 0.50;
+    mutationChanceRemove = 0.15;
     // mutationChanceReplace = 0.15;
-    mutationChanceSwap = 0.05;
-    mutationChanceMerge = 0.10;
+    mutationChanceSwap = 0.15;
+    mutationChanceMerge = 0.00;
 
-    mutationChanceShapeOverall = 0.70;
+    mutationChanceShapeOverall = 0.80;
     mutationShapePercentage = 0.15;
 
     // Shape-specific mutation parameters 
     //   * Probabilities are NOT mutually exclusive
     mutationShapeFineColorChance = 0.30;
-    mutationShapeFineMoveXChance = 0.25;
-    mutationShapeFineMoveYChance = 0.25;
-    mutationShapeFineScaleChance = 0.20;
-    mutationShapeFineRotateChance = 0.20;
-    mutationShapeVertexChance = 0.35;
+    mutationShapeFineMoveXChance = 0.30;
+    mutationShapeFineMoveYChance = 0.30;
+    mutationShapeFineScaleChance = 0.30;
+    mutationShapeFineRotateChance = 0.30;
+    mutationShapeVertexChance = 0.55;
 
-    vertexMutationRange = 12;
-    fineColorAdjustRange = 25;
-    fineMoveAdjustRange = 10;
+    vertexMutationRange = 100;
+    fineColorAdjustRange = 100;
+    fineMoveAdjustRange = 100;
 
     // Penalty for each triangle in the individual
     penalty = 0.000005;

@@ -13,6 +13,7 @@ public:
     ~RendererImpl();
 
     void renderLoop();
+    void updateGenerationOfIndex();
     void processRenderRequest();
     void update();
 
@@ -24,6 +25,7 @@ private:
     // Render thread only
     sf::RenderTexture renderTexture;
     i32 index = -1;
+    i32 generation = -1;
     float scale;
 };
 
@@ -91,6 +93,7 @@ void SFMLRenderer::RendererImpl::renderLoop() {
         update();
     };
 
+    i32 render_generation = -1;
     while (window.isOpen()) {
         if (flagExit.load(std::memory_order_relaxed)) {
             window.close();
@@ -112,18 +115,21 @@ void SFMLRenderer::RendererImpl::renderLoop() {
                     window.setSize(sf::Vector2u(width * scale * (showOriginal ? 2 : 1), height * scale));
                 } else if (event.key.code == sf::Keyboard::R) {
                     index = -1;
+                    render_generation = -1;
                     window.setTitle("Genetic Algorithm - Best Individual");
                     update();
                 } else if (event.key.code == sf::Keyboard::N) {
                     index++;
                     if (index >= globalCfg.populationSize)
                         index = 0;
+                    render_generation = -1;
                     window.setTitle("Genetic Algorithm - Individual #" + std::to_string(index));
                     update();
                 } else if (event.key.code == sf::Keyboard::P) {
                     index--;
                     if (index < 0)
                         index = globalCfg.populationSize - 1;
+                    render_generation = -1;
                     window.setTitle("Genetic Algorithm - Individual #" + std::to_string(index));
                     update();
                 } else if (event.key.code == sf::Keyboard::Up) {
@@ -141,6 +147,14 @@ void SFMLRenderer::RendererImpl::renderLoop() {
         }
 
         processRenderRequest();
+
+        if (render_generation != generation) {
+            render_generation = generation;
+            if (index == -1)
+                window.setTitle("Genetic Algorithm - Best Individual [" + std::to_string(generation) + "]");
+            else
+                window.setTitle("Genetic Algorithm - Individual #" + std::to_string(index) + " [" + std::to_string(generation) + "]");
+        }
 
         window.clear(sf::Color::Black);
         window.draw(sprite);
@@ -175,6 +189,11 @@ void SFMLRenderer::RendererImpl::update() {
 
     renderTexture.clear();
     renderTexture.draw(vA);
+
+    if (index == -1)
+        generation = self.bestIndividual.getGeneration();
+    else
+        generation = self.population.getIndividuals()[index].getGeneration();
 }
 
 SFMLRenderer::SFMLRenderer()

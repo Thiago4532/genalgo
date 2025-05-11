@@ -33,6 +33,9 @@ public:
     void setFitness(f64 fitness) noexcept { this->fitness = fitness; }
     void setWeightedFitness(f64 weightedFitness) noexcept { this->weightedFitness = weightedFitness; }
 
+    i32 getGeneration() const noexcept { return generation; }
+    void setGeneration(i32 generation) noexcept { this->generation = generation; }
+
     auto begin() noexcept { return triangles.begin(); }
     auto end() noexcept { return triangles.end(); }
 
@@ -58,6 +61,7 @@ private:
     std::vector<Triangle> triangles;
     f64 fitness = 1e18;
     f64 weightedFitness = 1e18;
+    i32 generation = 0;
 };
 
 GA_NAMESPACE_END
