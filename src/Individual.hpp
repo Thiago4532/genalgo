@@ -23,7 +23,10 @@ public:
     bool mutateMerge();
 
     bool mutate();
-    Individual crossover(Individual const& other) const;
+    
+    // Crossovers are not used anymore in the current implementation.
+    // Instead of a genetic algorithm, we are using a simpler evolutionary algorithm. (mu +lambda)
+    // Individual crossover(Individual const& other) const;
 
     f64 getFitness() const noexcept { return fitness; }
     f64 getWeightedFitness() const noexcept { return weightedFitness; }

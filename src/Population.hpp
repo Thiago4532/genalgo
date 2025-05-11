@@ -21,7 +21,8 @@ public:
     std::vector<Individual> const& getIndividuals() const noexcept { return individuals; }
     std::vector<Individual>& getIndividuals() noexcept { return individuals; }
 
-    Population breed() const;
+    Population produce_offspring() const;
+    void select_next_generation(Population&& offspring_population);
 
     friend void serialize(JSONSerializerState& state, const Population& population);
     friend void deserialize(JSONDeserializerState& state, Population& population);

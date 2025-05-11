@@ -136,43 +136,6 @@ bool Individual::mutate() {
     return mutated;
 }
 
-Individual Individual::crossover(Individual const& other) const {
-    static std::uniform_real_distribution<f64> dist(0, 1);
-
-    i32 imWidth = globalCfg.targetImage.getWidth();
-    i32 imHeight = globalCfg.targetImage.getHeight();
-
-    Individual child;
-    if (std::addressof(*this) == std::addressof(other)) {
-        child = *this;
-    } else {
-        i32 szMin = size();
-        i32 szMax = other.size();
-        if (szMin > szMax)
-            std::swap(szMin, szMax);
-
-        i32 sz = randomI32(szMin - 1, szMax + 1);
-        sz = std::clamp(sz, 1, szMin + szMax);
-        sz = std::min(sz, globalCfg.maxTriangles);
-        child.reserve(sz);
-
-        i32 sz_l = std::min(size(), (sz + 1) / 2);
-        i32 sz_r = sz - sz_l;
-
-        for (i32 i = 0; i < sz_l; i++)
-            child.push_back((*this)[i]);
-
-        for (i32 i = sz_r; i > 0; i--)
-            child.push_back(other[other.size() - i]); 
-    }
-
-    child.mutate();
-    while (dist(globalRNG) < 0.5)
-        child.mutate();
-
-    return child;
-}
-
 void serialize(JSONSerializerState& state, Individual const& self) {
     state.serialize(self.triangles);
 }

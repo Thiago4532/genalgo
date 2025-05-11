@@ -174,12 +174,8 @@ void GlobalConfig::loadConstants() {
     minTriangles = 1;
     maxTriangles = 1100; 
 
-    // Number of elite individuals
-    eliteSize = 2;
-    breedPoolSize = 20;
-
     // Mutations per offspring
-    mutationsPerOffspring = 1;
+    mutationsPerOffspring = 2;
 
     // Mutation parameters
     //   * Probabilities are NOT mutually exclusive

@@ -45,41 +45,43 @@ void Population::evaluate(FitnessEngine& engine) {
     engine.evaluate(individuals);
 }
 
-Population Population::breed() const {
-    std::vector<i32> idx(individuals.size());
-    for (i32 i = 0; i < individuals.size(); ++i)
-        idx[i] = i;
+Population Population::produce_offspring() const {
+    Population offspring_population;
+    offspring_population.individuals.reserve(this->individuals.size());
 
-    std::sort(idx.begin(), idx.end(), [this](i32 i, i32 j) {
-        Individual const& a = individuals[i];
-        Individual const& b = individuals[j];
+    const int mutationsPerOffspring = globalCfg.mutationsPerOffspring;
 
-        if (a.getWeightedFitness() == b.getWeightedFitness())
-            return a.size() < b.size();
-        return a.getWeightedFitness() < b.getWeightedFitness();
-    });
+    for (const Individual& parent_individual : this->individuals) {
+        Individual offspring = parent_individual;
 
-    const i32 ELITE = globalCfg.eliteSize;
-    if (individuals.size() < ELITE)
-        throw std::runtime_error("Not enough individuals to breed");
-
-    Population nextGen;
-    nextGen.individuals.reserve(individuals.size());
-
-    for (i32 i = 0; i < ELITE; ++i)
-        nextGen.individuals.push_back(individuals[idx[i]]);
-
-    std::uniform_int_distribution<i32> dist(0, globalCfg.breedPoolSize - 1);
-
-    while (nextGen.individuals.size() < individuals.size()) {
-        i32 parent1 = dist(globalRNG);
-        i32 parent2 = dist(globalRNG);
-
-        Individual child = individuals[idx[parent1]].crossover(individuals[idx[parent2]]);
-        nextGen.individuals.push_back(child);
+        for (int m = 0; m < mutationsPerOffspring; ++m) {
+            offspring.mutate();
+        }
+        offspring_population.individuals.push_back(offspring);
     }
 
-    return nextGen;
+    return offspring_population;
+}
+
+void Population::select_next_generation(Population&& offspring_population) {
+    this->individuals.reserve(this->individuals.size() + offspring_population.individuals.size());
+
+    for (Individual& offspring_ind : offspring_population.individuals) {
+        this->individuals.push_back(std::move(offspring_ind));
+    }
+
+    std::sort(this->individuals.begin(), this->individuals.end(),
+        [](const Individual& a, const Individual& b) {
+            if (a.getWeightedFitness() == b.getWeightedFitness()) {
+                return a.size() < b.size();
+            }
+            return a.getWeightedFitness() < b.getWeightedFitness();
+        }
+    );
+
+    if (this->individuals.size() > globalCfg.populationSize) {
+        this->individuals.resize(globalCfg.populationSize);
+    }
 }
 
 void serialize(JSONSerializerState& state, Population const& self) {

@@ -28,11 +28,7 @@ struct GlobalConfig {
     i32 numTriangles;
     i32 minTriangles;
     i32 maxTriangles; 
-
-    // Number of elite individuals
-    i32 eliteSize;
-    i32 breedPoolSize;
-    
+ 
     // Mutations per offspring
     i32 mutationsPerOffspring;
 

@@ -122,13 +122,12 @@ int main() {
     u32 renderPeriod = globalCfg.renderPeriod;
     u32 logPeriod = globalCfg.logPeriod;
 
+    // We should evaluate the first population before starting the loop
+    pop.evaluate(*engine);
+
     std::cout << std::fixed << std::setprecision(2);
     for (i64 cGen = 1; !shouldStop(); ++cGen, ++nGen) {
         profiler.start("loop");
-
-        profiler.start("evaluation", engineName);
-        pop.evaluate(*engine);
-        profiler.stop("evaluation");
 
         for (Individual const& i : pop.getIndividuals()) {
             if (i.getWeightedFitness() < bestIndividual.getWeightedFitness()) {
@@ -147,10 +146,18 @@ int main() {
         }
         profiler.stop("render");
 
+        profiler.start("produce_offspring", "Produce offspring");
+        auto offspring = pop.produce_offspring();
+        profiler.stop("produce_offspring");
+        
+        profiler.start("evaluation", engineName);
+        offspring.evaluate(*engine);
+        profiler.stop("evaluation");
+
         if (!globalCfg.breedDisabled) {
-            profiler.start("breed", "Breed");
-            pop = pop.breed();
-            profiler.stop("breed");
+            profiler.start("select_next_generation", "Select");
+            pop.select_next_generation(std::move(offspring));
+            profiler.stop("select_next_generation");
         }
 
         profiler.stop("loop");
