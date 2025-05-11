@@ -60,11 +60,18 @@ static i32 select(i32 n, F&& f) {
 bool Individual::mutateAdd() {
     if (size() >= globalCfg.maxTriangles)
         return false;
-    i32 width = globalCfg.targetImage.getWidth();
-    i32 height = globalCfg.targetImage.getHeight();
 
     i32 id = randomI32(0, size());
     triangles.insert(begin() + id, randomTriangle());
+    return true;
+}
+
+bool Individual::mutateReplace() {
+    i32 id = randomI32(0, size() - 1);
+    // hyper-mutation
+    for (i32 i = 0; i < 100; ++i) {
+        triangles[id].mutate();
+    }
     return true;
 }
 
@@ -112,18 +119,32 @@ bool Individual::mutateMerge() {
     return true;
 }
 
+bool Individual::mutateSplit() {
+    if (triangles.size() >= globalCfg.maxTriangles)
+        return false;
+
+    i32 i = randomI32(0, size() - 1);
+    auto [triangle1, triangle2] = triangles[i].split();
+    triangles[i] = triangle1;
+    triangles.insert(begin() + i + 1, triangle2);
+    return true;
+}
+
+
 bool Individual::mutate() {
     bool mutated = false;
     if (randomF64(0, 1) < globalCfg.mutationChanceAdd)
         mutated |= mutateAdd();
     if (randomF64(0, 1) < globalCfg.mutationChanceRemove)
         mutated |= mutateRemove();
-    // if (randomF64(0, 1) < globalCfg.mutationChanceReplace)
-    //     mutated |= mutateReplace();
+    if (randomF64(0, 1) < globalCfg.mutationChanceReplace)
+        mutated |= mutateReplace();
     if (randomF64(0, 1) < globalCfg.mutationChanceSwap)
         mutated |= mutateSwap();
     if (randomF64(0, 1) < globalCfg.mutationChanceMerge)
         mutated |= mutateMerge();
+    if (randomF64(0, 1) < globalCfg.mutationChanceSplit)
+        mutated |= mutateSplit();
 
     if (randomF64(0, 1) < globalCfg.mutationChanceShapeOverall && !triangles.empty()) {
         i32 n = std::max(1, (i32)(size() * globalCfg.mutationShapePercentage));

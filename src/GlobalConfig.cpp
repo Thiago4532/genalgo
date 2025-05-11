@@ -179,14 +179,15 @@ void GlobalConfig::loadConstants() {
 
     // Mutation parameters
     //   * Probabilities are NOT mutually exclusive
-    mutationChanceAdd = 0.50;
+    mutationChanceAdd = 0.40;
     mutationChanceRemove = 0.15;
-    // mutationChanceReplace = 0.15;
-    mutationChanceSwap = 0.15;
-    mutationChanceMerge = 0.00;
+    mutationChanceReplace = 0.15;
+    mutationChanceSwap = 0.10;
+    mutationChanceMerge = 0.10;
+    mutationChanceSplit = 0.20;
 
-    mutationChanceShapeOverall = 0.80;
-    mutationShapePercentage = 0.15;
+    mutationChanceShapeOverall = 0.50;
+    mutationShapePercentage = 0.05;
 
     // Shape-specific mutation parameters 
     //   * Probabilities are NOT mutually exclusive
@@ -195,14 +196,14 @@ void GlobalConfig::loadConstants() {
     mutationShapeFineMoveYChance = 0.30;
     mutationShapeFineScaleChance = 0.30;
     mutationShapeFineRotateChance = 0.30;
-    mutationShapeVertexChance = 0.55;
+    mutationShapeVertexChance = 0.00;
 
     vertexMutationRange = 100;
-    fineColorAdjustRange = 100;
-    fineMoveAdjustRange = 100;
+    fineColorAdjustRange = 25;
+    fineMoveAdjustRange = 0.5;
 
     // Penalty for each triangle in the individual
-    penalty = 0.000005;
+    penalty = 0.0005;
 
     // Renderer parameters
     renderScale = 1;

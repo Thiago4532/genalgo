@@ -18,9 +18,10 @@ public:
 
     bool mutateAdd();
     bool mutateRemove();
-    // bool mutateReplace();
+    bool mutateReplace();
     bool mutateSwap();
     bool mutateMerge();
+    bool mutateSplit();
 
     bool mutate();
     

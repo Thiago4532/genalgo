@@ -41,9 +41,10 @@ struct GlobalConfig {
     //   * Probabilities are NOT mutually exclusive
     f64 mutationChanceAdd;
     f64 mutationChanceRemove;
-    // f64 mutationChanceReplace;
+    f64 mutationChanceReplace;
     f64 mutationChanceSwap;
     f64 mutationChanceMerge;
+    f64 mutationChanceSplit;
 
     f64 mutationChanceShapeOverall;
     f64 mutationShapePercentage;
@@ -59,7 +60,7 @@ struct GlobalConfig {
 
     i32 vertexMutationRange;
     i32 fineColorAdjustRange;
-    i32 fineMoveAdjustRange;
+    f64 fineMoveAdjustRange;
 
     // Penalty for each triangle in the individual
     f64 penalty;

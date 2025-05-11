@@ -74,7 +74,7 @@ Population Population::produce_offspring() const {
 }
 
 i32 Population::get_mutations_per_offspring() const {
-    i32 mutationsPerOffspring = 1;
+    i32 mutationsPerOffspring = globalCfg.mutationsPerOffspring;
     return std::min(mutationsPerOffspring, 20);
 }
 
