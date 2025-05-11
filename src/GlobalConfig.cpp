@@ -167,7 +167,7 @@ void GlobalConfig::loadConstants() {
     svgScale = 16;
 
     // Number of individuals in the population
-    populationSize = 200;
+    populationSize = 100;
 
     // Number of triangles in each individual
     numTriangles = 100;
