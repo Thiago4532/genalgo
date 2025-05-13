@@ -12,28 +12,85 @@
 GA_NAMESPACE_BEGIN
 
 static Triangle randomTriangle() {
-    i32 width = globalCfg.targetImage.getWidth();
-    i32 height = globalCfg.targetImage.getHeight();
+    while (true) {
+        i32 width = globalCfg.targetImage.getWidth();
+        i32 height = globalCfg.targetImage.getHeight();
 
-    std::uniform_int_distribution<i32> xDist(0, width - 1);
-    std::uniform_int_distribution<i32> yDist(0, height - 1);
-    std::uniform_int_distribution<u8> colorDist(0, 255);
-    std::uniform_int_distribution<u8> alphaDist(50, 255);
+        std::uniform_int_distribution<i32> xDist(0, width - 1);
+        std::uniform_int_distribution<i32> yDist(0, height - 1);
+        std::uniform_int_distribution<u8> colorDist(0, 255);
+        std::uniform_int_distribution<u8> alphaDist(30, 255);
 
-    Triangle t;
-    t.a.x = xDist(globalRNG);
-    t.a.y = yDist(globalRNG);
-    t.b.x = xDist(globalRNG);
-    t.b.y = yDist(globalRNG);
-    t.c.x = xDist(globalRNG);
-    t.c.y = yDist(globalRNG);
-    t.color.r = colorDist(globalRNG);
-    t.color.g = colorDist(globalRNG);
-    t.color.b = colorDist(globalRNG);
-    t.color.a = alphaDist(globalRNG);
+        Triangle t;
+        t.a.x = xDist(globalRNG);
+        t.a.y = yDist(globalRNG);
+        t.b.x = xDist(globalRNG);
+        t.b.y = yDist(globalRNG);
+        t.c.x = xDist(globalRNG);
+        t.c.y = yDist(globalRNG);
+        t.color.r = colorDist(globalRNG);
+        t.color.g = colorDist(globalRNG);
+        t.color.b = colorDist(globalRNG);
+        t.color.a = alphaDist(globalRNG);
 
-    return t;
+        if (t.area() < 10)
+            continue;
+
+        // auto [smallest, largest] = t.getAnglePair();
+        // if (smallest >= 20 * M_PI / 180) {
+        //     return t;
+        // }
+        return t;
+    }
 }
+
+// static Triangle randomTriangle() {
+//     i32 width = globalCfg.targetImage.getWidth();
+//     i32 height = globalCfg.targetImage.getHeight();
+
+//     std::uniform_int_distribution<i32> xDist(0, width - 1);
+//     std::uniform_int_distribution<i32> yDist(0, height - 1);
+//     std::uniform_int_distribution<u8> colorDist(0, 255);
+//     std::uniform_int_distribution<u8> alphaDist(60, 255); // Keep some opacity
+
+//     // Define a max "radius" or size for the triangle relative to image dimensions
+//     // Make this configurable: globalCfg.randomTriangleMaxSizeFactor (e.g., 0.05 to 0.3)
+//     // This means a triangle's "spread" will be up to X% of the image width/height.
+//     auto randomTriangleMaxSizeFactor = 0.3;
+//     i32 max_radius_x = static_cast<i32>(width * randomTriangleMaxSizeFactor);
+//     i32 max_radius_y = static_cast<i32>(height * randomTriangleMaxSizeFactor);
+//     max_radius_x = std::max(10, max_radius_x);
+//     max_radius_y = std::max(10, max_radius_y);
+
+//     std::uniform_int_distribution<i32> radiusDistX(5, max_radius_x); // Min radius 5px
+//     std::uniform_int_distribution<i32> radiusDistY(5, max_radius_y);
+
+//     Triangle t;
+//     do { // Loop until a non-degenerate triangle is formed (e.g., non-zero area)
+//         Point<i32> center = {xDist(globalRNG), yDist(globalRNG)};
+
+//         // Generate 3 points around the center within the radius
+//         // This is a simple way; more sophisticated ways exist (e.g., random angles & distances)
+//         t.a.x = std::clamp(center.x + randomI32(-radiusDistX(globalRNG), radiusDistX(globalRNG)), 0, width - 1);
+//         t.a.y = std::clamp(center.y + randomI32(-radiusDistY(globalRNG), radiusDistY(globalRNG)), 0, height - 1);
+//         t.b.x = std::clamp(center.x + randomI32(-radiusDistX(globalRNG), radiusDistX(globalRNG)), 0, width - 1);
+//         t.b.y = std::clamp(center.y + randomI32(-radiusDistY(globalRNG), radiusDistY(globalRNG)), 0, height - 1);
+//         t.c.x = std::clamp(center.x + randomI32(-radiusDistX(globalRNG), radiusDistX(globalRNG)), 0, width - 1);
+//         t.c.y = std::clamp(center.y + randomI32(-radiusDistY(globalRNG), radiusDistY(globalRNG)), 0, height - 1);
+//     } while (t.area() < 10 || t.area() > 0.3 * width * height);
+
+//     t.color.r = colorDist(globalRNG);
+//     t.color.g = colorDist(globalRNG);
+//     t.color.b = colorDist(globalRNG);
+//     t.color.a = alphaDist(globalRNG);
+
+//     // Optionally, re-apply your angle constraint here if still desired
+//     // if (t.getLargestAngle() > 120 * M_PI / 180) return randomTriangle_centerSize(); // Recurse or loop
+//     // if (t.getAnglePair().second > 120 * M_PI / 180)
+//     //     return randomTriangle();
+
+//     return t;
+// }
 
 template<typename F>
 static i32 select(i32 n, F&& f) {
@@ -64,9 +121,11 @@ bool Individual::mutateAdd() {
     i32 width = globalCfg.targetImage.getWidth();
     i32 height = globalCfg.targetImage.getHeight();
 
-    // i32 id = randomI32(0, size());
-    // triangles.insert(begin() + id, randomTriangle());
-    triangles.push_back(randomTriangle());
+    auto triangle = randomTriangle();
+    i32 id = randomI32(0, size());
+    triangles.insert(begin() + id, triangle);
+
+    // triangles.push_back(triangle);
     return true;
 }
 
@@ -79,6 +138,11 @@ bool Individual::mutateRemove() {
         return std::make_pair(prob, i);
     });
     triangles.erase(begin() + id);
+
+    if (index_merge > id)
+        index_merge = std::max(-1, index_merge - 1);
+    else if (index_merge == id)
+        index_merge = -1;
     return true;
 }
 
@@ -93,6 +157,8 @@ bool Individual::mutateReplace() {
     });
     
 
+    if (index_merge == i)
+        index_merge = -1;
     triangles[i] = randomTriangle();
     // i32 j = randomI32(0, size() - 1);
     // triangles.erase(begin() + i);
@@ -109,6 +175,12 @@ bool Individual::mutateSwap() {
     if (j >= i)
         j++;
     using std::swap;
+
+    if (index_merge == i)
+        index_merge = j;
+    else if (index_merge == j)
+        index_merge = i;
+
     swap(triangles[i], triangles[j]);
     return true;
 }
@@ -118,6 +190,14 @@ bool Individual::mutateMerge() {
         return false;
 
     i32 i = randomI32(0, size() - 1);
+    // size_t count = 0;
+    // for (i32 j = 0; j < triangles.size(); j++) {
+    //     if (j == i) continue;
+    //     if (triangles[i].collidesWith(triangles[j]))
+    //         ++count;
+    // }
+    // std::cout << "Collisions: " << count << " of " << triangles.size() - 1 << " (" << 100.0 * count / (triangles.size() - 1) << "%)\n";
+
     i32 j = select(size() - 1,
         [&](i32 j) {
             if (j >= i) ++j;
@@ -129,16 +209,26 @@ bool Individual::mutateMerge() {
 
     triangles[i].merge(triangles[j]);
     triangles.erase(begin() + j);
+
+    // FIGHT!
+    // if (triangles[i].area() < triangles[j].area()) {
+    //     triangles.erase(begin() + i);
+    // }
+    // else {
+    //     triangles.erase(begin() + j);
+    // }
+
     return true;
 }
 
 bool Individual::mutateSplit() {
-    if (triangles.size() >= globalCfg.maxTriangles)
-        return false;
+    // if (triangles.size() >= globalCfg.maxTriangles)
+    //     return false;
 
     i32 i = randomI32(0, size() - 1);
     auto [triangle1, triangle2] = triangles[i].split();
-    auto& T = randomI32(0, 1) ? triangle1 : triangle2;
+    // auto& T = randomI32(0, 1) ? triangle1 : triangle2;
+    auto& T = triangle1.area() > triangle2.area() ? triangle1 : triangle2;
     triangles[i] = T;
     return true;
 }
@@ -176,9 +266,11 @@ bool Individual::mutate() {
 
     if (prob < globalCfg.mutationChanceMerge)
         return mutateMerge();
+    prob -= globalCfg.mutationChanceMerge;
 
     if (prob < globalCfg.mutationChanceSplit)
         return mutateSplit();
+    prob -= globalCfg.mutationChanceSplit;
     
     if (prob < globalCfg.mutationChanceShape)
         return mutateShape();
@@ -210,16 +302,23 @@ Individual Individual::crossover(Individual const& other) const {
         i32 sz_l = std::min(size(), (sz + 1) / 2);
         i32 sz_r = sz - sz_l;
 
-        for (i32 i = 0; i < sz_l; i++)
+        for (i32 i = 0; i < sz_l; i++) {
+            if (this->index_merge == i)
+                child.index_merge = child.size();
             child.push_back((*this)[i]);
+        }
 
-        for (i32 i = sz_r; i > 0; i--)
+        for (i32 i = sz_r; i > 0; i--) {
+            if (other.index_merge == other.size() - i)
+                child.index_merge = child.size();
             child.push_back(other[other.size() - i]); 
+        }
     }
 
-    child.mutate();
+    while (!child.mutate()) {}
+
     while (dist(globalRNG) < 0.5)
-        child.mutate();
+        while (!child.mutate()) {}
 
     return child;
 }

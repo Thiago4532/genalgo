@@ -170,7 +170,7 @@ void GlobalConfig::loadConstants() {
     populationSize = 200;
 
     // Number of triangles in each individual
-    numTriangles = 1;
+    numTriangles = 100;
     maxTriangles = 1100; 
 
     // Number of elite individuals
@@ -184,8 +184,8 @@ void GlobalConfig::loadConstants() {
     mutationChanceReplace = 0.20;
     mutationChanceSwap = 0.05;
     mutationChanceMerge = 0.15;
-    mutationChanceSplit = 0.10;
-    mutationChanceShape = 0.40;
+    mutationChanceSplit = 0.00;
+    mutationChanceShape = 0.30;
 
     // Shape-specific mutation parameters 
     //   * Probabilities are mutually exclusive, they must sum to <= 1
@@ -196,7 +196,7 @@ void GlobalConfig::loadConstants() {
     mutationShapeFineRotateChance = 0.20;
 
     // Penalty for each triangle in the individual
-    penalty = 0.000005;
+    penalty = 0.00001;
 
     // Renderer parameters
     renderScale = 1;

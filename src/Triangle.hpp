@@ -15,6 +15,9 @@ struct Triangle {
     i64 area() const;
 
     i64 squareDistance(Triangle const& other) const;
+    bool collidesWith(Triangle const& other) const;
+
+    std::pair<f64, f64> getAnglePair() const;
 
     bool mutateFineColor();
     bool mutateFineMoveX();

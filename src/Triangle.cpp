@@ -33,6 +33,68 @@ i64 Triangle::squareDistance(Triangle const& other) const {
     return dx * dx + dy * dy;
 }
 
+bool Triangle::collidesWith(Triangle const& other) const {
+    // Use Separating Axis Theorem for triangle-triangle collision
+    auto project = [](const Point<i32>& p, const Point<i32>& axis) -> i64 {
+        return static_cast<i64>(p.x) * axis.x + static_cast<i64>(p.y) * axis.y;
+    };
+
+    auto testAxes = [&](const Point<i32> axes[3]) {
+        for (int i = 0; i < 3; ++i) {
+            const auto& axis = axes[i];
+            // Project this triangle
+            i64 aProj[3] = { project(a, axis), project(b, axis), project(c, axis) };
+            i64 minA = std::min({aProj[0], aProj[1], aProj[2]});
+            i64 maxA = std::max({aProj[0], aProj[1], aProj[2]});
+            // Project other triangle
+            i64 bProj[3] = { project(other.a, axis), project(other.b, axis), project(other.c, axis) };
+            i64 minB = std::min({bProj[0], bProj[1], bProj[2]});
+            i64 maxB = std::max({bProj[0], bProj[1], bProj[2]});
+            // If there is a gap, no collision
+            if (maxA < minB || maxB < minA)
+                return false;
+        }
+        return true;
+    };
+
+    // Compute edge normals (axes) for both triangles
+    Point<i32> axes1[3] = {
+        Point<i32>{-(b.y - a.y),  b.x - a.x},
+        Point<i32>{-(c.y - b.y),  c.x - b.x},
+        Point<i32>{-(a.y - c.y),  a.x - c.x}
+    };
+    Point<i32> axes2[3] = {
+        Point<i32>{-(other.b.y - other.a.y), other.b.x - other.a.x},
+        Point<i32>{-(other.c.y - other.b.y), other.c.x - other.b.x},
+        Point<i32>{-(other.a.y - other.c.y), other.a.x - other.c.x}
+    };
+
+    // Collide if no separating axis is found
+    return testAxes(axes1) && testAxes(axes2);
+}
+
+static i64 cross(const Point<i32>& o, const Point<i32>& a, const Point<i32>& b) {
+    return 1ll * (a.x - o.x) * (b.y - o.y) - 1ll * (a.y - o.y) * (b.x - o.x);
+}
+
+static i64 dot(const Point<i32>& o, const Point<i32>& a, const Point<i32>& b) {
+    return 1ll * (a.x - o.x) * (b.x - o.x) + 1ll * (a.y - o.y) * (b.y - o.y);
+}
+
+static f64 getAngle(const Point<i32>& a, const Point<i32>& b, const Point<i32>& c) {
+    auto dp = dot(a, b, c);
+    auto cp = cross(a, b, c);
+    f64 angle = std::atan2(std::abs(cp), dp);
+    return angle;
+}
+
+std::pair<f64, f64> Triangle::getAnglePair() const {
+    f64 angleA = getAngle(a, b, c);
+    f64 angleB = getAngle(b, c, a);
+    f64 angleC = getAngle(c, a, b);
+    return {std::min({angleA, angleB, angleC}), std::max({angleA, angleB, angleC})};
+}
+
 static i32 fineAdjust(i32 range) {
     return randomI32(-range, range);
 }
@@ -73,7 +135,7 @@ bool Triangle::mutateFineMoveY() {
 }
 
 bool Triangle::mutateFineScale() {
-    f64 scale = randomF64(0.5, 2.0);
+    f64 scale = randomF64(0.6, 1.8);
 
     // Scale the triangle around its center
     Point<f64> center = (a + b + c) / 3.0;

@@ -53,6 +53,7 @@ public:
     friend void deserialize(JSONDeserializerState& state, Individual& self);
 
     void toSVG(std::ostream& os) const;
+    i32 index_merge = -1;
 private:
     std::vector<Triangle> triangles;
     f64 fitness = 1e18;

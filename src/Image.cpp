@@ -58,8 +58,9 @@ void Image::computeWeights() {
         for (i32 x = 0; x < width; ++x) {
             i32 idx = (y * width + x);
             if (maxSum > 0.0) {
-                auto value = sums[idx] / maxSum;
-                weights[idx] = 1 - std::sqrt(value);
+                // auto value = sums[idx] / maxSum;
+                // weights[idx] = sums[idx];
+                weights[idx] = 0;
             } 
         }
     }

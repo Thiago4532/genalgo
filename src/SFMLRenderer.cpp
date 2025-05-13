@@ -51,6 +51,7 @@ SFMLRenderer::RendererImpl::~RendererImpl() {
 }
 
 static void transform(sf::Color* data, f64* weights, i32 width, i32 height) {
+    return;
     for (i32 y = 0; y < height; ++y) {
         for (i32 x = 0; x < width; ++x) {
             auto& c = data[y * width + x];
@@ -195,7 +196,8 @@ void SFMLRenderer::RendererImpl::update() {
     sf::VertexArray vA(sf::Triangles, individual.size() * 3);
 
     float scale = this->scale;
-    for (Triangle const& t : individual) {
+    for (i32 i = 0; i < individual.size(); ++i) {
+        Triangle const& t = individual[i];
         sf::Color color(t.color.r, t.color.g, t.color.b, t.color.a);
 
         vA.append(sf::Vertex(scale * sf::Vector2f(t.a.x, height - t.a.y), color));
