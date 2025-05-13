@@ -207,16 +207,16 @@ bool Individual::mutateMerge() {
         }
     );
 
-    triangles[i].merge(triangles[j]);
-    triangles.erase(begin() + j);
+    // triangles[i].merge(triangles[j]);
+    // triangles.erase(begin() + j);
 
     // FIGHT!
-    // if (triangles[i].area() < triangles[j].area()) {
-    //     triangles.erase(begin() + i);
-    // }
-    // else {
-    //     triangles.erase(begin() + j);
-    // }
+    if (triangles[i].area() < triangles[j].area()) {
+        triangles.erase(begin() + i);
+    }
+    else {
+        triangles.erase(begin() + j);
+    }
 
     return true;
 }

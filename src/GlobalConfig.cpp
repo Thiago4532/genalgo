@@ -184,7 +184,7 @@ void GlobalConfig::loadConstants() {
     mutationChanceReplace = 0.20;
     mutationChanceSwap = 0.05;
     mutationChanceMerge = 0.15;
-    mutationChanceSplit = 0.00;
+    mutationChanceSplit = 0.05;
     mutationChanceShape = 0.30;
 
     // Shape-specific mutation parameters 

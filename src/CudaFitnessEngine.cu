@@ -410,21 +410,26 @@ void drawTriangles(GPUImageInfo image, GPUDrawData data) {
     i32 imSize = image.size;
     Vec3f* canvas = image.canvas + i * imSize;
 
-    i32 idx = threadIdx.x;
+    // i32 idx = threadIdx.x;
 
-    i32 dy = idx / 16;
-    i32 dx = idx % 15;
+    // i32 dy = idx / 16;
+    // i32 dx = idx % 15;
 
-    i32 rowH = min(16, height - tileY*16);
-    i32 colW = min(16, width - tileX*16);
+    // i32 rowH = min(16, height - tileY*16);
+    // i32 colW = min(16, width - tileX*16);
 
-    i32 pixelsBeforeRows = min(tileY*16, height) * width;
+    // i32 pixelsBeforeRows = min(tileY*16, height) * width;
 
-    i32 pixelsBeforeTiles = rowH * min(tileX*16, width);
+    // i32 pixelsBeforeTiles = rowH * min(tileX*16, width);
 
-    i32 offset = dy * colW + dx;
+    // i32 offset = dy * colW + dx;
 
-    i32 xy = pixelsBeforeRows + pixelsBeforeTiles + offset;
+    // i32 xy = pixelsBeforeRows + pixelsBeforeTiles + offset;
+    i32 m = 16;
+    if (tileY == image.height / 16)
+        m = image.height % 16;
+
+    i32 xy = 16 * (tileY * width + m * tileX) + threadIdx.x;
 
     canvas[xy] = pixel;
 }
