@@ -25,6 +25,7 @@ struct Triangle {
     bool mutate();
 
     void merge(Triangle const& other);
+    std::pair<Triangle, Triangle> split() const;
 
     friend void serialize(JSONSerializerState& state, Triangle const& self);
     friend void deserialize(JSONDeserializerState& state, Triangle& self);

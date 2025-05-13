@@ -1,6 +1,7 @@
 #include "Image.hpp"
 
 #include <SFML/Graphics.hpp>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -19,6 +20,7 @@ void Image::computeWeights() {
     const i32 RADIUS = 5;
 
     auto sums = std::make_unique<f64[]>(width * height);
+    f64 maxSum = 0.0;
     for (i32 y = 0; y < height; ++y) {
         for (i32 x = 0; x < width; ++x) {
             i64 total = 0;
@@ -42,6 +44,9 @@ void Image::computeWeights() {
             if (numNeighbours > 0) {
                 f64 sum = 1.0 * total / (255 * 255 * numNeighbours);
                 sums[y * width + x] = sum;
+                if (sum > maxSum) {
+                    maxSum = sum;
+                }
             } else {
                 sums[y * width + x] = 0.0;
             }
@@ -52,7 +57,10 @@ void Image::computeWeights() {
     for (i32 y = 0; y < height; ++y) {
         for (i32 x = 0; x < width; ++x) {
             i32 idx = (y * width + x);
-            weights[idx] = sums[idx];
+            if (maxSum > 0.0) {
+                auto value = sums[idx] / maxSum;
+                weights[idx] = 1 - std::sqrt(value);
+            } 
         }
     }
 }

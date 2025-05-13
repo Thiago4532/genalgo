@@ -1,6 +1,8 @@
 #include "SFMLRenderer.hpp"
 #include "GlobalConfig.hpp"
 
+#include <cmath>
+#include <cstring>
 #include <iostream>
 #include <thread>
 #include <SFML/Graphics.hpp>
@@ -48,6 +50,28 @@ SFMLRenderer::RendererImpl::~RendererImpl() {
     renderThread.join();
 }
 
+static void transform(sf::Color* data, f64* weights, i32 width, i32 height) {
+    for (i32 y = 0; y < height; ++y) {
+        for (i32 x = 0; x < width; ++x) {
+            auto& c = data[y * width + x];
+            i32 idx = (y * width + x);
+            f64 gray = static_cast<u8>(0.299 * c.r +
+                                       0.587 * c.g +
+                                       0.114 * c.b);
+
+            f64 weight = 1.0 - weights[idx];
+            if (weight < 0 || weight > 1) {
+                std::cerr << "Invalid weight: " << weight << std::endl;
+                std::abort();
+            }
+            c.r = (u8)(weight * 255.0);
+            c.g = 0;
+            c.b = 0;
+            c.a = 255;
+        }
+    }
+}
+
 void SFMLRenderer::RendererImpl::renderLoop() {
     i32 width = globalCfg.targetImage.getWidth();
     i32 height = globalCfg.targetImage.getHeight();
@@ -58,8 +82,13 @@ void SFMLRenderer::RendererImpl::renderLoop() {
 
     renderTexture.create(width * scale, height * scale);
 
+    sf::Color* targetData = new sf::Color[width * height];
+    static_assert(sizeof(sf::Color) == 4 * sizeof(u8), "sf::Color must be 4 bytes");
+    std::memcpy(targetData, globalCfg.targetImage.getData(), width * height * 4);
+    transform(targetData, globalCfg.targetImage.getWeights(), width, height);
+
     sf::Image targetImage;
-    targetImage.create(width, height, globalCfg.targetImage.getData());
+    targetImage.create(width, height, reinterpret_cast<u8*>(targetData));
     sf::Texture targetTexture;
     targetTexture.loadFromImage(targetImage);
 
@@ -168,6 +197,7 @@ void SFMLRenderer::RendererImpl::update() {
     float scale = this->scale;
     for (Triangle const& t : individual) {
         sf::Color color(t.color.r, t.color.g, t.color.b, t.color.a);
+
         vA.append(sf::Vertex(scale * sf::Vector2f(t.a.x, height - t.a.y), color));
         vA.append(sf::Vertex(scale * sf::Vector2f(t.b.x, height - t.b.y), color));
         vA.append(sf::Vertex(scale * sf::Vector2f(t.c.x, height - t.c.y), color));

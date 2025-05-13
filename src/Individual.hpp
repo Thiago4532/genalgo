@@ -21,6 +21,7 @@ public:
     bool mutateReplace();
     bool mutateSwap();
     bool mutateMerge();
+    bool mutateSplit();
     bool mutateShape();
 
     bool mutate();

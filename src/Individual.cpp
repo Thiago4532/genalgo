@@ -6,6 +6,7 @@
 #include "JSONSerializer/vector_serializer.hpp"
 #include "JSONDeserializer/vector_deserializer.hpp"
 #include <iomanip>
+#include <iostream>
 #include <ostream>
 
 GA_NAMESPACE_BEGIN
@@ -131,12 +132,27 @@ bool Individual::mutateMerge() {
     return true;
 }
 
+bool Individual::mutateSplit() {
+    if (triangles.size() >= globalCfg.maxTriangles)
+        return false;
+
+    i32 i = randomI32(0, size() - 1);
+    auto [triangle1, triangle2] = triangles[i].split();
+    auto& T = randomI32(0, 1) ? triangle1 : triangle2;
+    triangles[i] = T;
+    return true;
+}
+
 bool Individual::mutateShape() {
     if (triangles.empty())
         return false;
     
+    bool mutated = false;
     i32 i = randomI32(0, size() - 1);
-    return triangles[i].mutate();
+    for (i32 j = 0; j < 2; j++) {
+        mutated |= triangles[i].mutate();
+    }
+    return mutated;
 }
 
 bool Individual::mutate() {
@@ -160,6 +176,9 @@ bool Individual::mutate() {
 
     if (prob < globalCfg.mutationChanceMerge)
         return mutateMerge();
+
+    if (prob < globalCfg.mutationChanceSplit)
+        return mutateSplit();
     
     if (prob < globalCfg.mutationChanceShape)
         return mutateShape();
